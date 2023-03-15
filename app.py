@@ -248,14 +248,42 @@ examples = [["""# Test basic playwright interaction
               """]
             ]
 
-demo = gr.Interface(fn=story_check,
-                    inputs=["text"],
-                    outputs=["json"],
-                    title=title,
-                    description=description,
-                    examples=examples,
-                    cache_examples=False
-                    )
+# demo = gr.Interface(fn=story_check,
+#                     inputs=["text"],
+#                     outputs=["json"],
+#                     title=title,
+#                     description=description,
+#                     examples=examples,
+#                     cache_examples=False
+#                     )
+
+initial_story = """
+# User Story
+## Prerequisite Context
+## Action Steps
+1. Go to https://app.uniswap.org
+2. Click on Connect Wallet
+3. Swap ETH for DAI
+## Expected Results
+"""
+
+with gr.Blocks() as demo:
+    inp = gr.Textbox(lines=10, label="Input User Story in Markdown format:",
+                     value=initial_story)
+    md_preview = gr.Markdown(value=inp.value)
+    inp.change(lambda text: text, inp, md_preview)
+    btn = gr.Button("Run")
+    out = gr.Markdown()
+    btn.click(fn=lambda md: "Success!", inputs=inp, outputs=out)
+
+if __name__ == "__main__":
+    demo.launch()
 
 # share=True when running in a Jupyter Notebook
-demo.launch(server_name="0.0.0.0")
+try:
+    demo.launch(server_name="0.0.0.0")
+except Exception:
+    # usually caused by CTRL+C and related exceptions
+    pass
+finally:
+    demo.close()

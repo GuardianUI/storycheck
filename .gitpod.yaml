@@ -5,3 +5,8 @@ tasks:
       playwright install
       playwright install-deps
     command: python3 app.py
+
+ports:
+  - name: StoryCheck Web App
+    port: 7860
+    onOpen: open-preview
