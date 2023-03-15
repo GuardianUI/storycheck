@@ -1,0 +1,7 @@
+
+tasks:
+  - init: |
+      pip3 install -r requirements.txt
+      playwright install
+      playwright install-deps
+    command: python3 app.py
