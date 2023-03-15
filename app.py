@@ -258,16 +258,22 @@ examples = [["""# Test basic playwright interaction
 #                     )
 
 initial_story = """
-# User Story
-## Prerequisite Context
-## Action Steps
+# Swapping ETH for DAI on Uniswap
+
+## Prerequisites
+- User crypto wallet has 0.11 ETH
+
+## Steps
 1. Go to https://app.uniswap.org
 2. Click on Connect Wallet
 3. Swap ETH for DAI
-## Expected Results
+
+## Expected results
+- User crypto wallet has 0.1 ETH less
+- User crypto wallet has 100 DAI more
 """
 
-with gr.Blocks() as demo:
+with gr.Blocks(title=title) as demo:
     inp = gr.Textbox(lines=10, label="Input User Story in Markdown format:",
                      value=initial_story)
     md_preview = gr.Markdown(value=inp.value)
