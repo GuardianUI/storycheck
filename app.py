@@ -221,41 +221,6 @@ def story_check(story: str):
 
 
 title = "StoryCheck Playground by GuardianUI"
-description = """
-  StoryCheck playground for Web3 apps.
-  It takes as input markdown formatted user stories
-  with steps written in natural language.
-  Then it parses the text and executes the steps in a virtual web browser
-  closely emulating
-  the actions of a real user.
-  """
-examples = [["""# Test basic playwright interaction
-                ## Context
-                  - Wallet has:
-                    - 0.1 ETH
-                    - 0 DAI
-
-                ## Steps
-                1. Go to http://uniswap.org/
-                2. Connect wallet
-                3. Swap ETH for DAI
-                4. Submit
-
-                ## Result
-                  - Wallet has:
-                    - < 0.1 ETH
-                    - > 100 DAI
-              """]
-            ]
-
-# demo = gr.Interface(fn=story_check,
-#                     inputs=["text"],
-#                     outputs=["json"],
-#                     title=title,
-#                     description=description,
-#                     examples=examples,
-#                     cache_examples=False
-#                     )
 
 initial_story = """
 # Swapping ETH for DAI on Uniswap
