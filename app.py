@@ -272,7 +272,7 @@ with gr.Blocks() as demo:
                      value=initial_story)
     md_preview = gr.Markdown(value=inp.value)
     inp.change(lambda text: text, inp, md_preview)
-    btn = gr.Button("Run")
+    btn = gr.Button(value="Run", variant="primary")
     out = gr.Markdown()
     btn.click(fn=lambda md: "Success!", inputs=inp, outputs=out)
 
