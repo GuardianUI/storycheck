@@ -1,0 +1,9 @@
+node_modules/
+/test-results/
+/playwright-report/
+/playwright/.cache/
+provider/
+yarn-error.log
+package-lock.json
+.env
+/tests
