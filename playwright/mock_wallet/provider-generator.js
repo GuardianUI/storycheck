@@ -10,7 +10,7 @@ import { Wallet } from "@ethersproject/wallet";
 import { MockWallet } from "./mocks/MockWallet";
 
 const rpcProvider = new JsonRpcProvider("https://eth-mainnet.g.alchemy.com/v2/0Uk2xg_qksy5OMviwu8MOHMHVJX4mQ1D", 1);
-const signer = new Wallet(process.env.PRIVATE_KEY, rpcProvider);
+const signer = Wallet.createRandom();
 const provider = new MockWallet(signer, rpcProvider);
 
 window["ethereum"] = provider;

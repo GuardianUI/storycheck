@@ -9,5 +9,7 @@ the actions of a real user.
 
 ```ml
 ├─ .\ — "Main StoryCheck python app."
-│  ├─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context."
+│  ├─ playwright — "Playwright control logic using Python SDK."
+│  │  ├─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context."
+│  │  │
 ```
