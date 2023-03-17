@@ -4,7 +4,11 @@ tasks:
       pip3 install -r requirements.txt
       playwright install
       playwright install-deps
-    command: python3 app.py
+      curl -L https://foundry.paradigm.xyz | bash
+    command: |
+      source /home/gitpod/.bashrc
+      foundryup
+      python3 app.py
 
 ports:
   - name: StoryCheck Web App

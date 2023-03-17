@@ -6,6 +6,8 @@ import torch
 import html
 from transformers import DonutProcessor, VisionEncoderDecoderModel
 from loguru import logger
+import asyncio
+from foundry import Anvil
 
 global model, loaded_revision, processor, device
 model = None
@@ -204,44 +206,42 @@ def process_refexp(image: Image, prompt: str, model_revision: str = 'main', retu
     return image, center_point
 
 
-def story_check(story: str):
-
-    logger.debug('user story', story)
-    result = {'result': 'Success'}
-
-    # Use gradio advanced controls to render markdown and allow edit
-    # then parse
+async def story_check(story: str):
+    logger.info('user story', story)
+    anvil = Anvil()
+    await anvil.start()
+    # parse md
     # setup playwright with mock wallet
     # run steps with VLM
     # check results
     # return results
     # in case of errors, return meaningful message with suggested corrective actions
-
+    await anvil.stop()
+    result = 'Success'
     return result
 
 
-title = "StoryCheck Playground by GuardianUI"
+def main():
+    title = "StoryCheck Playground by GuardianUI"
+    with open('examples/uniswap.md', 'r') as file:
+        initial_story = file.read()
+    with gr.Blocks(title=title) as demo:
+        inp = gr.Textbox(lines=10, label="Input User Story in Markdown format:",
+                         value=initial_story)
+        md_preview = gr.Markdown(value=inp.value)
+        inp.change(lambda text: text, inp, md_preview)
+        btn = gr.Button(value="Run", variant="primary")
+        out = gr.Markdown()
+        btn.click(lambda story: asyncio.run(
+            story_check(story)), inputs=inp, outputs=out)
+    try:
+        demo.launch(server_name="0.0.0.0")
+    except Exception:
+        # usually caused by CTRL+C and related exceptions
+        pass
+    finally:
+        demo.close()
 
-with open('examples/uniswap.md', 'r') as file:
-    initial_story = file.read()
-
-with gr.Blocks(title=title) as demo:
-    inp = gr.Textbox(lines=10, label="Input User Story in Markdown format:",
-                     value=initial_story)
-    md_preview = gr.Markdown(value=inp.value)
-    inp.change(lambda text: text, inp, md_preview)
-    btn = gr.Button(value="Run", variant="primary")
-    out = gr.Markdown()
-    btn.click(fn=lambda md: "Success!", inputs=inp, outputs=out)
 
 if __name__ == "__main__":
-    demo.launch()
-
-# share=True when running in a Jupyter Notebook
-try:
-    demo.launch(server_name="0.0.0.0")
-except Exception:
-    # usually caused by CTRL+C and related exceptions
-    pass
-finally:
-    demo.close()
+    main()
