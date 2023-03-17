@@ -222,21 +222,8 @@ def story_check(story: str):
 
 title = "StoryCheck Playground by GuardianUI"
 
-initial_story = """
-# Swapping ETH for DAI on Uniswap
-
-## Prerequisites
-- User crypto wallet has 0.11 ETH
-
-## Steps
-1. Go to https://app.uniswap.org
-2. Click on Connect Wallet
-3. Swap ETH for DAI
-
-## Expected results
-- User crypto wallet has 0.1 ETH less
-- User crypto wallet has 100 DAI more
-"""
+with open('examples/uniswap.md', 'r') as file:
+    initial_story = file.read()
 
 with gr.Blocks(title=title) as demo:
     inp = gr.Textbox(lines=10, label="Input User Story in Markdown format:",
