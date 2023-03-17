@@ -1,15 +1,14 @@
 from playwright.async_api import async_playwright
+from loguru import logger
 
 
-class StoryRunner:
+class UserAgent:
 
-    def __init__(self):
-        pass
-
-    def run_story(self, user_story):
+    async def run_story(self, user_story):
         """
         Parse and execute a user story in markdown and natural language format.
         """
+        logger.debug("Starting playwright user agent...")
         playwright = await async_playwright().start()
         browser = await playwright.chromium.launch()
         chromium = playwright.chromium
@@ -19,7 +18,10 @@ class StoryRunner:
         # in your playwright script, assuming the preload.js file is in same directory.
         await browser_context.add_init_script(path="mock_wallet/provider/provider.js")
         page = await browser_context.new_page()
+        logger.debug("Running user story via playwright...")
         await page.goto("http://whatsmyuseragent.org/")
         await page.screenshot(path="example.png")
+        logger.debug("Finished running user story via playwright...")
         await browser.close()
         await playwright.stop()
+        logger.debug("Stopped playwright.")

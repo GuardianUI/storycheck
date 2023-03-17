@@ -3,7 +3,7 @@
 ## Starting Context
 
 - Chain name: Ethereum Mainnet
-- Block number: 123456
+- Block number: 16848466
 - User crypto wallet holds:
   - 0.11 ETH
 

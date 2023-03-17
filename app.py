@@ -7,7 +7,8 @@ import html
 from transformers import DonutProcessor, VisionEncoderDecoderModel
 from loguru import logger
 import asyncio
-from foundry import Anvil
+from blockchain import LocalChain
+from browser import UserAgent
 
 global model, loaded_revision, processor, device
 model = None
@@ -207,21 +208,30 @@ def process_refexp(image: Image, prompt: str, model_revision: str = 'main', retu
 
 
 async def story_check(story: str):
-    logger.info('user story', story)
-    anvil = Anvil()
-    await anvil.start()
-    # parse md
-    # setup playwright with mock wallet
-    # run steps with VLM
-    # check results
-    # return results
-    # in case of errors, return meaningful message with suggested corrective actions
-    await anvil.stop()
-    result = 'Success'
+    logger.debug("Story Check starting for user story:\n {story}", story=story)
+    try:
+        # start local blockchain fork
+        chain = LocalChain()
+        await chain.start()
+        # parse md
+        # setup playwright with mock wallet
+        user_agent = UserAgent()
+        await user_agent.run_story(story)
+        # run steps with VLM
+        # check results
+        # return results
+        # in case of errors, return meaningful message with suggested corrective actions
+        result = 'Success'
+    except Exception as e:
+        logger.exception(e)
+        result = 'Error'
+    finally:
+        await chain.stop()
+        logger.debug("Story Check Finished.")
     return result
 
 
-def main():
+async def main():
     title = "StoryCheck Playground by GuardianUI"
     with open('examples/uniswap.md', 'r') as file:
         initial_story = file.read()
@@ -232,8 +242,7 @@ def main():
         inp.change(lambda text: text, inp, md_preview)
         btn = gr.Button(value="Run", variant="primary")
         out = gr.Markdown()
-        btn.click(lambda story: asyncio.run(
-            story_check(story)), inputs=inp, outputs=out)
+        btn.click(story_check, inputs=inp, outputs=out)
     try:
         demo.launch(server_name="0.0.0.0")
     except Exception:
@@ -244,4 +253,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
