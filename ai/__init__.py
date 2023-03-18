@@ -58,7 +58,7 @@ class RefExp:
         """
         assert image is not None
         assert output_image_size is not None
-        img2 = image.copy()
+        img2 = image.convert("RGB")
         img2.thumbnail(output_image_size)
         oimg = Image.new(mode=img2.mode, size=output_image_size, color=0)
         oimg.paste(img2, box=(0, 0))

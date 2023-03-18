@@ -22,17 +22,28 @@ async def story_check(story: str):
         refexp = RefExp()
         # run steps with VLM
         logger.debug("Running Story Steps...")
-        await user_agent.page.goto("http://whatsmyuseragent.org/")
-        await user_agent.page.screenshot(path="results/example_1.png")
-        await user_agent.page.goto("http://app.uniswap.org/")
-        await user_agent.page.screenshot(path="results/example_2.png")
+        page = user_agent.page
+        await page.goto("http://whatsmyuseragent.org/")
+        await page.screenshot(path="results/example_1.png")
+        await page.goto("http://app.uniswap.org/")
+        await page.screenshot(path="results/example_2.png")
         with Image.open("results/example_2.png") as image:
-            image = image.convert("RGB")
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="select connect button at top right")
+                image=image, prompt="select get started button")
             annotated_image.save("results/example_2_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
+            width, height = image.size
+        screen_x = int(width*center_point['x'])
+        screen_y = int(height*center_point['y'])
+        logger.debug("Mouse click at x:{x}, y:{y}", x=screen_x, y=screen_y)
+        await page.mouse.click(screen_x, screen_y)
+        await page.wait_for_url("**/#/swap")
+        # await page.wait_for_timeout(2000)
+        await page.mouse.dblclick(screen_x, screen_y)
+        # await page.wait_for_url("**")
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_3.png")
         logger.debug("Done running Story Steps...")
         # check results
         # return results
