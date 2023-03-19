@@ -20,6 +20,18 @@ def xyxy(point=None, page=None):
     return cpTranslated
 
 
+async def log_browser_console_message(msg):
+    values = []
+    for arg in msg.args:
+        values.append(await arg.json_value())
+    if msg.type == 'error':
+        logger.error('Browser console: {s}', s=values)
+    elif msg.type == 'warning':
+        logger.warning('Browser console: {s}', s=values)
+    else:
+        logger.error('Browser console: {s}', s=values)
+
+
 async def story_check(story: str):
     logger.debug("Story Check starting for user story:\n {story}", story=story)
     try:
@@ -35,6 +47,10 @@ async def story_check(story: str):
         # run steps with VLM
         logger.debug("Running Story Steps...")
         page = user_agent.page
+
+        page.on("console", log_browser_console_message)
+        await page.evaluate("console.log('hello', 5, {foo: 'bar'})")
+
         await page.goto("http://whatsmyuseragent.org/")
         await page.screenshot(path="results/example_1.png")
         await page.goto("http://app.uniswap.org/")
