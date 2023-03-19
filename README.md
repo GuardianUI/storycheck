@@ -3,11 +3,13 @@
 StoryCheck for Web3 apps. Provides a web app playground as well as an API. Both served via Gradio on port 7860.
 
 ```mermaid
-graph TD;
-    A-->B;
-    A-->C;
-    B-->D;
-    C-->D;
+flowchart TD
+    A[User Story] -->|check| B(StoryCheck)
+    B --> |parse| C[Markdown Parser]
+    B -->|play| D[Browser Driver]
+    D -->|locate UI element| E[AI Model]
+    D -->|sign tx| F[Mock Wallet]
+    F -->|blokchain tx| G[Local Ethereum Fork]
 ```
 
 It takes as input markdown formatted user stories
