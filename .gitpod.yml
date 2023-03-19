@@ -1,3 +1,5 @@
+image:
+  file: .gitpod.Dockerfile
 
 tasks:
   - init: |
@@ -18,3 +20,4 @@ vscode:
     - ms-toolsai.jupyter-renderers
     - charliermarsh.rufftasks
     - ms-python.python
+    - ms-python.isort
