@@ -1,6 +1,15 @@
 # StoryCheck
 
-StoryCheck playground for Web3 apps.
+StoryCheck for Web3 apps. Provides a web app playground as well as an API. Both served via Gradio on port 7860.
+
+```mermaid
+graph TD;
+    A-->B;
+    A-->C;
+    B-->D;
+    C-->D;
+```
+
 It takes as input markdown formatted user stories
 with steps written in natural language.
 Then it parses the text and executes the steps in a virtual web browser
