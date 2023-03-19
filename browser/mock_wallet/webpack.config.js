@@ -11,19 +11,19 @@ module.exports = {
     new Dotenv()
   ],
   stats: {
-    colors: false,
-    hash: false,
-    version: false,
-    timings: false,
-    assets: false,
-    chunks: false,
-    modules: false,
-    reasons: false,
+    hash: true,
+    colors: true,
+    version: true,
+    timings: true,
+    assets: true,
+    chunks: true,
+    modules: true,
+    reasons: true,
     children: false,
-    source: false,
-    errors: false,
-    errorDetails: false,
-    warnings: false,
-    publicPath: false
+    source: true,
+    errors: true,
+    errorDetails: true,
+    warnings: true,
+    publicPath: true
   }
 };

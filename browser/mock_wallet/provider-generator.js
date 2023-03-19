@@ -9,7 +9,7 @@ import { JsonRpcProvider } from "@ethersproject/providers";
 import { Wallet } from "@ethersproject/wallet";
 import { MockWallet } from "./mocks/MockWallet";
 
-WAGMI_URL =  'http://127.0.0.1:8545'
+const WAGMI_URL = "http://127.0.0.1:8545";
 
 // link to local foundry anvil fork of mainnet
 const rpcProvider = new JsonRpcProvider(WAGMI_URL, 1);

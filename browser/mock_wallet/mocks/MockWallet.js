@@ -9,7 +9,7 @@ class MockInternalMetaMask {
 }
 
 export class MockWallet extends Eip1193Bridge {
-  constructor(signer: Signer, provider?: Provider | undefined) {
+  constructor(signer, provider) {
     super(signer, provider);
     console.debug("Constructor called", { signer, provider });
   }
@@ -19,7 +19,7 @@ export class MockWallet extends Eip1193Bridge {
   _metamask = new MockInternalMetaMask();
 
   // Emit transaction target contract to the console
-  emitTx(target: any, data: any) {
+  emitTx(target, data) {
     const targetStringified = target.toString();
     const dataStringified = data.toString();
 
@@ -32,11 +32,11 @@ export class MockWallet extends Eip1193Bridge {
     console.log({ targetStringified, dataStringified, approvalTarget });
   }
 
-  async sendAsync(...args: any) {
+  async sendAsync(...args) {
     return this.send(...args);
   }
 
-  async send(...args: any) {
+  async send(...args) {
     const isCallbackForm =
       typeof args[0] === "object" && typeof args[1] === "function";
 

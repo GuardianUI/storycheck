@@ -3,11 +3,15 @@ image:
 
 tasks:
   - init: |
+      # install python app dependencies
       pip3 install -r requirements.txt
+      # build mock wallet
+      cd browser/mock_wallet
+      yarn install --non-interactive
+      yarn bundle
+      cd -
     command: |
       foundryup
-      # build mock wallet
-      yarn --cwd browser/mock_wallet build
       python3 app.py
 
 ports:
