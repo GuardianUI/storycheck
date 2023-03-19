@@ -8,6 +8,18 @@ from PIL import Image
 from dotenv import load_dotenv
 
 
+def xyxy(point=None, page=None):
+    assert point is not None
+    assert page is not None
+    # Convert predicted point in [0..1] range coordinates to viewport coordinates
+    vpSize = page.viewport_size
+    cpTranslated = {
+        'x': int(point['x'] * vpSize['width']),
+        'y': int(point['y'] * vpSize['height'])
+    }
+    return cpTranslated
+
+
 async def story_check(story: str):
     logger.debug("Story Check starting for user story:\n {story}", story=story)
     try:
@@ -34,16 +46,29 @@ async def story_check(story: str):
             logger.debug("center point: {cp}", cp=center_point
                          )
             width, height = image.size
-        screen_x = int(width*center_point['x'])
-        screen_y = int(height*center_point['y'])
-        logger.debug("Mouse click at x:{x}, y:{y}", x=screen_x, y=screen_y)
-        await page.mouse.click(screen_x, screen_y)
-        await page.wait_for_url("**/#/swap")
-        # await page.wait_for_timeout(2000)
-        await page.mouse.dblclick(screen_x, screen_y)
-        # await page.wait_for_url("**")
-        await page.wait_for_timeout(2000)
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+        # wait up to 2 seconds for the url to update as a result of click()
+        await page.wait_for_url(url="**", timeout=2000)
         await page.screenshot(path="results/example_3.png")
+
+        with Image.open("results/example_3.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="select connect wallet button")
+            annotated_image.save("results/example_3_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+        # wait up to 2 seconds for the url to update as a result of click()
+        await page.wait_for_url(url="**", timeout=2000)
+        await page.screenshot(path="results/example_4.png")
+
         logger.debug("Done running Story Steps...")
         # check results
         # return results
