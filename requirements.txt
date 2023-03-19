@@ -1,6 +1,5 @@
 transformers
 torch
-sentencepiece
 Pillow
 gradio
 playwright
