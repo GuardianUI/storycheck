@@ -5,8 +5,9 @@ tasks:
   - init: |
       pip3 install -r requirements.txt
     command: |
-      # source /home/gitpod/.bashrc
       foundryup
+      # redo pip3 installs that are not preserved from init stage
+      pip3 install -r requirements.txt
       python3 app.py
 
 ports:
