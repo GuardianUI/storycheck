@@ -6,6 +6,8 @@ tasks:
       pip3 install -r requirements.txt
     command: |
       foundryup
+      # build mock wallet
+      yarn --cwd browser/mock_wallet build
       python3 app.py
 
 ports:
@@ -17,6 +19,6 @@ vscode:
   extensions:
     - ms-toolsai.jupyter
     - ms-toolsai.jupyter-renderers
-    - charliermarsh.rufftasks
     - ms-python.python
     - ms-python.isort
+    - charliermarsh.ruff
