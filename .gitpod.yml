@@ -6,7 +6,7 @@ tasks:
       pip3 install -r requirements.txt
     command: |
       # source /home/gitpod/.bashrc
-      # foundryup
+      foundryup
       python3 app.py
 
 ports:
