@@ -12,5 +12,4 @@ RUN pip3 install playwright\
       && playwright install-deps
 
 ### Foundry
-RUN curl -L https://foundry.paradigm.xyz | bash \
-  && foundryup
+RUN curl -L https://foundry.paradigm.xyz | bash
