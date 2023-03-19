@@ -67,7 +67,8 @@ async def story_check(story: str):
         await page.mouse.click(click_point['x'], click_point['y'])
         # wait up to 2 seconds for the url to update as a result of click()
         await page.wait_for_url(url="**", timeout=2000)
-        await page.screenshot(path="results/example_4.png")
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_4.png", animations='disabled')
 
         logger.debug("Done running Story Steps...")
         # check results
