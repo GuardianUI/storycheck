@@ -38,7 +38,7 @@ async def story_check(story: str):
         await page.goto("http://whatsmyuseragent.org/")
         await page.screenshot(path="results/example_1.png")
         await page.goto("http://app.uniswap.org/")
-        await page.screenshot(path="results/example_2.png")
+        await page.screenshot(path="results/example_2.png", animations='disabled')
         with Image.open("results/example_2.png") as image:
             annotated_image, center_point = refexp.process_refexp(
                 image=image, prompt="select get started button")
@@ -50,9 +50,9 @@ async def story_check(story: str):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
-        # wait up to 2 seconds for the url to update as a result of click()
-        await page.wait_for_url(url="**", timeout=2000)
-        await page.screenshot(path="results/example_3.png")
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_3.png", animations='disabled')
 
         with Image.open("results/example_3.png") as image:
             annotated_image, center_point = refexp.process_refexp(
@@ -65,10 +65,24 @@ async def story_check(story: str):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
-        # wait up to 2 seconds for the url to update as a result of click()
-        await page.wait_for_url(url="**", timeout=2000)
+        # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_4.png", animations='disabled')
+
+        with Image.open("results/example_4.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="select MetaMask option")
+            annotated_image.save("results/example_4_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_5.png", animations='disabled')
 
         logger.debug("Done running Story Steps...")
         # check results
