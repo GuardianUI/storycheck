@@ -12,7 +12,7 @@ class MockInternalMetaMask {
 export class MockWallet extends Eip1193Bridge {
   constructor(signer, provider) {
     super(signer, provider);
-    console.warn("MockWallet constructor called", { signer, provider });
+    console.debug("MockWallet constructor called", { signer, provider });
   }
 
   // Match Metamask interface
