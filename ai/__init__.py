@@ -92,8 +92,8 @@ class RefExp:
 
         resized_height = int(input_height*ratio)
         resized_width = int(input_width*ratio)
-        print(f'>>> resized_width={resized_width}')
-        print(f'>>> resized_height={resized_height}')
+        logger.debug(f'>>> resized_width={resized_width}')
+        logger.debug(f'>>> resized_height={resized_height}')
 
         if resized_height == input_height and resized_width == input_width:
             return
@@ -168,24 +168,24 @@ class RefExp:
 
         # postprocess
         sequence = self.processor.batch_decode(outputs.sequences)[0]
-        print(fr"predicted decoder sequence: {html.escape(sequence)}")
+        logger.debug(fr"predicted decoder sequence: {html.escape(sequence)}")
         sequence = sequence.replace(self.processor.tokenizer.eos_token, "").replace(
             self.processor.tokenizer.pad_token, "")
         # remove first task start token
         sequence = re.sub(r"<.*?>", "", sequence, count=1).strip()
-        print(
+        logger.debug(
             fr"predicted decoder sequence before token2json: {html.escape(sequence)}")
         seqjson = self.processor.token2json(sequence)
 
         # safeguard in case predicted sequence does not include a target_center token
         center_point = seqjson.get('target_center')
         if center_point is None:
-            print(
+            logger.debug(
                 f"predicted sequence has no target_center, seq:{sequence}")
             center_point = {"x": 0, "y": 0}
             return center_point
 
-        print(
+        logger.debug(
             f"predicted center_point with text coordinates: {center_point}")
         # safeguard in case text prediction is missing some center point coordinates
         # or coordinates are not valid numeric values
@@ -200,11 +200,11 @@ class RefExp:
         # replace str with float coords
         center_point = {"x": x, "y": y,
                         "decoder output sequence (before x,y adjustment)": sequence}
-        print(
+        logger.debug(
             f"predicted center_point with float coordinates: {center_point}")
 
-        print(f"input image size: {in_size}")
-        print(f"processed prompt: {prompt}")
+        logger.debug(f"input image size: {in_size}")
+        logger.debug(f"processed prompt: {prompt}")
 
         # convert coordinates from tensor image size to input image size
         out_size = (

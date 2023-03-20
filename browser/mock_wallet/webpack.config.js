@@ -10,6 +10,7 @@ module.exports = {
   plugins: [
     new Dotenv()
   ],
+  // mode: 'development',
   stats: {
     hash: true,
     colors: true,

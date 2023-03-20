@@ -24,12 +24,11 @@ async def log_browser_console_message(msg):
     values = []
     for arg in msg.args:
         values.append(await arg.json_value())
-    if msg.type == 'error':
-        logger.error('Browser console: {s}', s=values)
-    elif msg.type == 'warning':
-        logger.warning('Browser console: {s}', s=values)
-    else:
-        logger.error('Browser console: {s}', s=values)
+    try:
+        level = logger.level(msg.type.upper()).name
+    except ValueError:
+        level = 'DEBUG'
+    logger.log(level, 'Browser console[{level}]: {s}', level=level, s=values)
 
 
 async def story_check(story: str):
