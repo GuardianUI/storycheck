@@ -217,7 +217,8 @@ async def story_check(story: str):
 
         with Image.open("results/example_13.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="Click on Confirm Swap button")
+                image=image,
+                prompt="click on the pink  confirm swap button at the bottom")
             annotated_image.save("results/example_13_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
