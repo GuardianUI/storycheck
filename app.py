@@ -181,6 +181,23 @@ async def story_check(story: str):
                               animations='disabled',
                               caret='initial')
 
+        with Image.open("results/example_11.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="select text field left of DAI dropdown button")
+            annotated_image.save("results/example_11_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_12.png",
+                              animations='disabled',
+                              caret='initial')
+
         logger.debug("Done running Story Steps...")
         # check results
         # return results
