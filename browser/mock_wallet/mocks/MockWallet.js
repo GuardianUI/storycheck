@@ -32,7 +32,7 @@ export class MockWallet extends Eip1193Bridge {
       console.warn("MockWallet.send RETURNS result", { result });
       return result
     } catch (e) {
-      console.error("MockWallet.send THROWS error", { error }, e.stack);
+      console.error("MockWallet.send THROWS error", { e }, e.stack);
     } finally {
       console.warn("MockWallet.send END!");
     }

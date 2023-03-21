@@ -166,7 +166,7 @@ async def story_check(story: str):
                               animations='disabled',
                               caret='initial')
 
-        await page.keyboard.type("DAI")
+        await page.keyboard.type("WE")
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_10.png",
@@ -175,7 +175,7 @@ async def story_check(story: str):
 
         with Image.open("results/example_10.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="click on Dai Stablecoin option")
+                image=image, prompt="click on Wrapped Ether option")
             annotated_image.save("results/example_10_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
@@ -192,7 +192,7 @@ async def story_check(story: str):
 
         with Image.open("results/example_11.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="select text field left of DAI dropdown button")
+                image=image, prompt="Click on Wrap button")
             annotated_image.save("results/example_11_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
@@ -203,78 +203,7 @@ async def story_check(story: str):
         await page.mouse.click(click_point['x'], click_point['y'])
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
-        await page.screenshot(path="results/example_12.png",
-                              animations='disabled',
-                              caret='initial')
-
-        with Image.open("results/example_12.png") as image:
-            annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="Click on Swap button")
-            annotated_image.save("results/example_12_annotated.png")
-            logger.debug("center point: {cp}", cp=center_point
-                         )
-            width, height = image.size
-        click_point = xyxy(point=center_point, page=page)
-        logger.debug("Mouse click at x:{x}, y:{y}",
-                     x=click_point['x'], y=click_point['y'])
-        await page.mouse.click(click_point['x'], click_point['y'])
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_13.png",
-                              animations='disabled',
-                              caret='initial')
-
-        with Image.open("results/example_13.png") as image:
-            annotated_image, center_point = refexp.process_refexp(
-                image=image,
-                prompt="click on the pink  confirm swap button at the bottom")
-            annotated_image.save("results/example_13_annotated.png")
-            logger.debug("center point: {cp}", cp=center_point
-                         )
-            width, height = image.size
-        click_point = xyxy(point=center_point, page=page)
-        logger.debug("Mouse click at x:{x}, y:{y}",
-                     x=click_point['x'], y=click_point['y'])
-        await page.mouse.click(click_point['x'], click_point['y'])
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await page.screenshot(path="results/example_14.png",
-                              animations='disabled',
-                              caret='initial')
-
-        with Image.open("results/example_14.png") as image:
-            annotated_image, center_point = refexp.process_refexp(
-                image=image,
-                prompt="click on accept button at the bottom right of price updated")
-            annotated_image.save("results/example_14_annotated.png")
-            logger.debug("center point: {cp}", cp=center_point
-                         )
-            width, height = image.size
-        click_point = xyxy(point=center_point, page=page)
-        logger.debug("Mouse click at x:{x}, y:{y}",
-                     x=click_point['x'], y=click_point['y'])
-        await page.mouse.click(click_point['x'], click_point['y'])
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await page.screenshot(path="results/example_15.png",
-                              animations='disabled',
-                              caret='initial')
-
-        with Image.open("results/example_15.png") as image:
-            annotated_image, center_point = refexp.process_refexp(
-                image=image,
-                prompt="click on the pink  confirm swap button at the bottom")
-            annotated_image.save("results/example_15_annotated.png")
-            logger.debug("center point: {cp}", cp=center_point
-                         )
-            width, height = image.size
-        click_point = xyxy(point=center_point, page=page)
-        logger.debug("Mouse click at x:{x}, y:{y}",
-                     x=click_point['x'], y=click_point['y'])
-        await page.mouse.click(click_point['x'], click_point['y'])
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await page.screenshot(path="results/example_16.png",
                               animations='disabled',
                               caret='initial')
 
