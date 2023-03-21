@@ -45,21 +45,28 @@ flowchart TD
     F -->|blokchain tx| G[Local Ethereum Fork]
 ```
 
-
 ## Directory structure
 
 ```ml
 ├─ .\ — "Main StoryCheck python app."
-│  │  
+│  │
 │  ├─ browser — "Playwright browser driver."
 │  │  │
 │  │  ├─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context as Metamask."
-│  │  
+│  │
 │  ├─ ai — "AI model that predicst UI element location based on natural language referring expressions."
-│  │  
+│  │
 │  ├─ blockchain — "Local EVM fork runtime via Foundry Anvil."
-│  │  
+│  │
 │  ├─ markdown — "Markdown parser."
-│  │  
+│  │
 │  ├─ examples — "Example user stories."
 ```
+
+## How to Build and Run
+
+This project is pre-configured to build and run via Gitpod.
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/GuardianUI/storycheck)
+
+To run locally or in another dev environemtn, copy the steps from [`.gitpod.yml`](.gitpod.yml)
