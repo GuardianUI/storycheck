@@ -61,11 +61,23 @@ async def story_check(story: str):
 
         # await page.goto("http://whatsmyuseragent.org/")
         # await page.screenshot(path="results/example_1.png")
-        await page.goto("http://app.uniswap.org/")
+        await page.goto("https://app.sporosdao.xyz/")
+
+        # get mock wallet address
+        address = await page.evaluate("() => window.ethereum.signer.address")
+        logger.info(
+            'user mock wallet account address: {address}', address=address)
+        # check mock wallet balance
+        balance = await page.evaluate(
+            "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
+            address)
+        logger.info(
+            'user mock wallet account balance: {balance}', balance=balance)
+
         await page.screenshot(path="results/example_2.png", animations='disabled')
         with Image.open("results/example_2.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="select get started button")
+                image=image, prompt="click on connect wallet in the top right corner")
             annotated_image.save("results/example_2_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
@@ -80,8 +92,23 @@ async def story_check(story: str):
 
         with Image.open("results/example_3.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="select connect wallet button")
+                image=image, prompt="click on circle icon in the top right corner")
             annotated_image.save("results/example_3_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_3_1.png", animations='disabled')
+
+        with Image.open("results/example_3_1.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="click on create a new company button")
+            annotated_image.save("results/example_3_1_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
             width, height = image.size
@@ -95,7 +122,7 @@ async def story_check(story: str):
 
         with Image.open("results/example_4.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="select MetaMask option")
+                image=image, prompt="click on Go! right arrow button left of Available")
             annotated_image.save("results/example_4_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
@@ -108,9 +135,31 @@ async def story_check(story: str):
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_5.png", animations='disabled')
 
+        # get mock wallet address
+        address = await page.evaluate("() => window.ethereum.signer.address")
+        logger.info(
+            'user mock wallet account address: {address}', address=address)
+        # check mock wallet balance
+        balance = await page.evaluate(
+            "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
+            address)
+        logger.info(
+            'user mock wallet account balance: {balance}', balance=balance)
+
+        # get mock wallet address
+        address = await page.evaluate("() => window.ethereum.signer.address")
+        logger.info(
+            'user mock wallet account address: {address}', address=address)
+        # check mock wallet balance
+        balance = await page.evaluate(
+            "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
+            address)
+        logger.info(
+            'user mock wallet account balance: {balance}', balance=balance)
+
         with Image.open("results/example_5.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="select text field left of ETH dropdown button")
+                image=image, prompt="select on-chain name text field")
             annotated_image.save("results/example_5_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
@@ -119,22 +168,28 @@ async def story_check(story: str):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await page.screenshot(path="results/example_6.png",
-                              animations='disabled',
-                              caret='initial')
 
-        await page.keyboard.type("0.1")
+        await page.keyboard.type("Test DAO")
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_7.png",
                               animations='disabled',
                               caret='initial')
 
+        # get mock wallet address
+        address = await page.evaluate("() => window.ethereum.signer.address")
+        logger.info(
+            'user mock wallet account address: {address}', address=address)
+        # check mock wallet balance
+        balance = await page.evaluate(
+            "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
+            address)
+        logger.info(
+            'user mock wallet account balance: {balance}', balance=balance)
+
         with Image.open("results/example_7.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="click on select token dropdown button")
+                image=image, prompt="select Token Symbol text field")
             annotated_image.save("results/example_7_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
@@ -143,6 +198,9 @@ async def story_check(story: str):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
+
+        await page.keyboard.type("TDO")
+
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_8.png",
@@ -151,7 +209,7 @@ async def story_check(story: str):
 
         with Image.open("results/example_8.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="select search name text field")
+                image=image, prompt="select Continue button")
             annotated_image.save("results/example_8_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
@@ -164,19 +222,24 @@ async def story_check(story: str):
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_9.png",
                               animations='disabled',
-                              caret='initial')
+                              caret='initial',
+                              full_page=True)
 
-        await page.keyboard.type("WE")
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await page.screenshot(path="results/example_10.png",
-                              animations='disabled',
-                              caret='initial')
+        # get mock wallet address
+        address = await page.evaluate("() => window.ethereum.signer.address")
+        logger.info(
+            'user mock wallet account address: {address}', address=address)
+        # check mock wallet balance
+        balance = await page.evaluate(
+            "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
+            address)
+        logger.info(
+            'user mock wallet account balance: {balance}', balance=balance)
 
-        with Image.open("results/example_10.png") as image:
+        with Image.open("results/example_9.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="click on Wrapped Ether option")
-            annotated_image.save("results/example_10_annotated.png")
+                image=image, prompt="select Address text field above Enter the wallet address")
+            annotated_image.save("results/example_9_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
             width, height = image.size
@@ -184,6 +247,9 @@ async def story_check(story: str):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
+
+        await page.keyboard.type("0x5389199D5168174FA177908685FbD52A7138Ed1a")
+
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_11.png",
@@ -192,7 +258,7 @@ async def story_check(story: str):
 
         with Image.open("results/example_11.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="Click on Wrap button")
+                image=image, prompt="select text field below Initial Tokens")
             annotated_image.save("results/example_11_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
@@ -201,11 +267,119 @@ async def story_check(story: str):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
+
+        await page.keyboard.type("1200")
+
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_12.png",
+                              animations='disabled',
+                              caret='initial')
+
+        with Image.open("results/example_12.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="select text field under Email")
+            annotated_image.save("results/example_12_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+
+        await page.keyboard.type("test@email.com")
+
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_13.png",
                               animations='disabled',
                               caret='initial')
+
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Enter")
+
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_14.png",
+                              animations='disabled',
+                              caret='initial')
+
+        await page.keyboard.press("Enter")
+
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_15.png",
+                              animations='disabled',
+                              caret='initial')
+
+        await page.keyboard.press("PageDown")
+
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_16.png",
+                              animations='disabled',
+                              caret='initial')
+
+        with Image.open("results/example_16.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="click on the checkbox left of Agree")
+            annotated_image.save("results/example_16_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_17.png",
+                              animations='disabled',
+                              caret='initial')
+
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Tab")
+        await page.keyboard.press("Enter")
+
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_18.png",
+                              animations='disabled',
+                              caret='initial')
+
+        with Image.open("results/example_18.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="select Deploy Now button")
+            annotated_image.save("results/example_18_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_19.png",
+                              animations='disabled',
+                              caret='initial')
+
+        # get mock wallet address
+        address = await page.evaluate("() => window.ethereum.signer.address")
+        logger.info(
+            'user mock wallet account address: {address}', address=address)
+        # check mock wallet balance
+        balance = await page.evaluate(
+            "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
+            address)
+        logger.info(
+            'user mock wallet account balance: {balance}', balance=balance)
 
         logger.debug("Done running Story Steps...")
         # check results
@@ -222,7 +396,9 @@ async def story_check(story: str):
     return result
 
 
+@logger.catch
 async def main():
+    logger.add("storycheck.log", rotation="2 MB", enqueue=True)
     load_dotenv()
     title = "StoryCheck Playground by GuardianUI"
     with open('examples/uniswap.md', 'r') as file:

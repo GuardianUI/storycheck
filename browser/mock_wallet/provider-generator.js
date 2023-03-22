@@ -13,10 +13,10 @@ import { MockWallet } from "./mocks/MockWallet";
 // in this browser context,
 // unless there is already one in place
 if (!window["ethereum"]) {
-  const WAGMI_URL = "http://127.0.0.1:8545";
+  const ANVIL_URL = "http://127.0.0.1:8545";
 
   // link to local foundry anvil fork of mainnet
-  const rpcProvider = new JsonRpcProvider(WAGMI_URL, 1);
+  const rpcProvider = new JsonRpcProvider(ANVIL_URL, 42161); // ChaindId: 1 for ETH mainnet, 42161 for Arbitrum One
 
   // create a new burn wallet for each test
   const signer = Wallet.createRandom();
