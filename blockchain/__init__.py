@@ -19,7 +19,7 @@ class LocalChain:
         self.anvil_proc = await asyncio.create_subprocess_exec(
             "anvil",
             # "https://eth-mainnet.g.alchemy.com/v2/0Uk2xg_qksy5OMviwu8MOHMHVJX4mQ1D",
-            "--fork-url", "https://eth-goerli.g.alchemy.com/v2/3HpUm27w8PfGlJzZa4jxnxSYs9vQN7FZ",
+            "--fork-url", "https://arb-mainnet.g.alchemy.com/v2/Kjt13n8OuVVCBqxIGMGYuwgbnLzfh1U6",
             # "--fork-block-number", block_n,
             "--chain-id",
             "42161",  # Arbitrum One

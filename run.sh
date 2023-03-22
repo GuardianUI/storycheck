@@ -1,12 +1,14 @@
 #!/bin/bash
 
-set -xvf
+set -xv
 
+ls -al results
 # clean up from previous runs
-rm -f ./results/*
+rm -rf results/
+
 rm storycheck.log
 
-clear
+# clear
 
 # start app
 python3 app.py
