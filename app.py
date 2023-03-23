@@ -37,17 +37,7 @@ async def story_check(story: str):
         # start local blockchain fork
         chain = LocalChain()
         await chain.start()
-        # parse md
-        # setup user agent (playwright) with mock wallet
-        # and user story prerequisites
-        # TODO: read actual values from story markdown text
-        prerequisites = {
-            'wallet': {
-                'ETH': 0.11
-            }
-        }
-        user_agent = UserAgent(prerequisites=prerequisites)
-
+        user_agent = UserAgent()
         await user_agent.start()
         # init ai model
         refexp = RefExp()
@@ -56,8 +46,6 @@ async def story_check(story: str):
         page = user_agent.page
 
         page.on("console", log_browser_console_message)
-
-        await page.evaluate("console.log('hello', 5, {foo: 'bar'})")
 
         # await page.goto("http://whatsmyuseragent.org/")
         # await page.screenshot(path="results/example_1.png")
@@ -134,17 +122,6 @@ async def story_check(story: str):
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_5.png", animations='disabled')
-
-        # get mock wallet address
-        address = await page.evaluate("() => window.ethereum.signer.address")
-        logger.info(
-            'user mock wallet account address: {address}', address=address)
-        # check mock wallet balance
-        balance = await page.evaluate(
-            "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
-            address)
-        logger.info(
-            'user mock wallet account balance: {balance}', balance=balance)
 
         # get mock wallet address
         address = await page.evaluate("() => window.ethereum.signer.address")
@@ -290,32 +267,49 @@ async def story_check(story: str):
 
         await page.keyboard.type("test@email.com")
 
+        await page.keyboard.press("PageDown")
+
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_13.png",
                               animations='disabled',
                               caret='initial')
 
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Enter")
-
+        with Image.open("results/example_13.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="select Continue button")
+            annotated_image.save("results/example_13_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_14.png",
                               animations='disabled',
                               caret='initial')
 
-        await page.keyboard.press("Enter")
-
+        with Image.open("results/example_14.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="select Continue button")
+            annotated_image.save("results/example_14_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await page.screenshot(path="results/example_15.png",
                               animations='disabled',
                               caret='initial')
 
-        await page.keyboard.press("PageDown")
+        await page.keyboard.press("PageUp")
 
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
@@ -341,10 +335,7 @@ async def story_check(story: str):
                               animations='disabled',
                               caret='initial')
 
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Tab")
-        await page.keyboard.press("Enter")
+        await page.keyboard.press("PageDown")
 
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
@@ -354,8 +345,32 @@ async def story_check(story: str):
 
         with Image.open("results/example_18.png") as image:
             annotated_image, center_point = refexp.process_refexp(
-                image=image, prompt="select Deploy Now button")
+                image=image, prompt="select Continue button")
             annotated_image.save("results/example_18_annotated.png")
+            logger.debug("center point: {cp}", cp=center_point
+                         )
+            width, height = image.size
+        click_point = xyxy(point=center_point, page=page)
+        logger.debug("Mouse click at x:{x}, y:{y}",
+                     x=click_point['x'], y=click_point['y'])
+        await page.mouse.click(click_point['x'], click_point['y'])
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_19.png",
+                              animations='disabled',
+                              caret='initial')
+
+        await page.keyboard.press("PageUp")
+        # wait up to 2 seconds for the page to update as a result of click()
+        await page.wait_for_timeout(2000)
+        await page.screenshot(path="results/example_20.png",
+                              animations='disabled',
+                              caret='initial')
+
+        with Image.open("results/example_20.png") as image:
+            annotated_image, center_point = refexp.process_refexp(
+                image=image, prompt="Click on Deploy Now button")
+            annotated_image.save("results/example_20_annotated.png")
             logger.debug("center point: {cp}", cp=center_point
                          )
             width, height = image.size
@@ -366,7 +381,7 @@ async def story_check(story: str):
 
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
-        await page.screenshot(path="results/example_19.png",
+        await page.screenshot(path="results/example_21.png",
                               animations='disabled',
                               caret='initial')
 
@@ -396,17 +411,18 @@ async def story_check(story: str):
     return result
 
 
-@logger.catch
 async def main():
     logger.add("storycheck.log", rotation="2 MB", enqueue=True)
     load_dotenv()
     title = "StoryCheck Playground by GuardianUI"
-    with open('examples/uniswap.md', 'r') as file:
+    with open('examples/sporosdao.md', 'r') as file:
         initial_story = file.read()
     with gr.Blocks(title=title) as demo:
-        inp = gr.Textbox(lines=10, label="Input User Story in Markdown format:",
-                         value=initial_story)
-        md_preview = gr.Markdown(value=inp.value)
+        with gr.Tab("Edit"):
+            inp = gr.Textbox(lines=10, label="Input User Story in Markdown format:",
+                             value=initial_story)
+        with gr.Tab("Preview"):
+            md_preview = gr.Markdown(value=inp.value)
         inp.change(lambda text: text, inp, md_preview)
         btn = gr.Button(value="Run", variant="primary")
         out = gr.Markdown()
