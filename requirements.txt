@@ -6,3 +6,4 @@ playwright
 loguru
 asyncio
 python-dotenv
+mistune

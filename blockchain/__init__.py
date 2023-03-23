@@ -26,12 +26,12 @@ class LocalChain:
             # "--no-mining"
         )
         logger.debug(
-            'Started anvil. Process: {process}', process=self.anvil_proc)
+            'Started anvil. Process: {process}', process=self.anvil_proc.pid)
 
     async def stop(self):
         # try to stop the process nicely
         logger.debug(
-            'Stopping anvil. Process: {process}', process=self.anvil_proc)
+            'Stopping anvil. Process: {process}', process=self.anvil_proc.pid)
         self.anvil_proc.terminate()
         try:
             # wait 15 seconds for the process to terminate

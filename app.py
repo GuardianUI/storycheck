@@ -6,6 +6,7 @@ from browser import UserAgent
 from ai import RefExp
 from PIL import Image
 from dotenv import load_dotenv
+from markdown import StoryParser, UserStory
 
 
 def xyxy(point=None, page=None):
@@ -41,6 +42,11 @@ async def story_check(story: str):
         await user_agent.start()
         # init ai model
         refexp = RefExp()
+        # initi md parser
+        parser = StoryParser()
+        user_story: UserStory = parser.parse(story)
+        # return
+
         # run steps with VLM
         logger.debug("Running Story Steps...")
         page = user_agent.page
