@@ -31,6 +31,6 @@
 1. Scroll up
 1. Click on Deploy Now button
 
-## Expected results
+## Expected Results
 
 - User transacted with contract 0x045cbcba76a7ecf82d0f6b5dcc0881b3c12e37d0

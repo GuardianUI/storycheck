@@ -45,7 +45,7 @@ async def story_check(story: str):
         # initi md parser
         parser = StoryParser()
         user_story: UserStory = parser.parse(story)
-        # return
+        return
 
         # run steps with VLM
         logger.debug("Running Story Steps...")
