@@ -16,18 +16,6 @@ async def log_browser_console_message(msg):
         level, 'Browser console[{level}]: {s}', level=level, s=values)
 
 
-def xyxy(point=None, page=None):
-    assert point is not None
-    assert page is not None
-    # Convert predicted point in [0..1] range coordinates to viewport coordinates
-    vpSize = page.viewport_size
-    cpTranslated = {
-        'x': int(point['x'] * vpSize['width']),
-        'y': int(point['y'] * vpSize['height'])
-    }
-    return cpTranslated
-
-
 class StoryInterpreter:
     """
     Given a populated UserStory object, it iterates over the list of

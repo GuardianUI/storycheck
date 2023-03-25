@@ -21,4 +21,4 @@ class ExpectedResults(StorySection):
         """
         Look for the interpreter of a specific prompt class.
         """
-        return NotImplementedInterpreter
+        return NotImplementedInterpreter(user_agent=self.user_agent)

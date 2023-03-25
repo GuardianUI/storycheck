@@ -31,3 +31,4 @@ class StorySection(ABC):
         """
         Look for the interpreter of a specific prompt class.
         """
+        pass

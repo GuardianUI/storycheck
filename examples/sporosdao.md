@@ -24,7 +24,7 @@
 1. Type test@email.com
 1. Scroll down
 1. Select Continue button
-1. Scroll up
+1. Select Continue button
 1. Click on the checkbox left of Agree
 1. Scroll down
 1. Select Continue button

@@ -8,37 +8,63 @@ from loguru import logger
 from PIL import Image
 
 
+def get_prompt_text(ast_prompt: list) -> str:
+    for c in ast_prompt[0]['children']:
+        if c['type'] == 'text':
+            return c['text']
+
+
 class UserStepInterpreter(StepInterpreter):
 
     @property
     def saved_screenshot_path(self):
-        self.user_agent.session.saved_screenshot_path
-
-    @saved_screenshot_path.setter
-    def saved_screenshot_path(self, path):
-        self.user_agent.session.saved_screenshot_path = path
+        return self.user_agent.session['saved_screenshot_path']
+        # logger.debug(
+        #     'self.user_agent.session: {session}', session=self.user_agent.session)
 
     async def save_screenshot(self):
-        path = f'{time.monotonic_ns()}_{self.__class__()}.png'
+        path = f'results/{time.monotonic_ns()}_{self.__class__.__name__}.png'
         await self.user_agent.page.screenshot(path=path,
                                               animations='disabled',
                                               caret='initial',
                                               full_page=True)
-        self.saved_screenshot_path = path
+        self.user_agent.session['saved_screenshot_path'] = path
+        # logger.debug(
+        #     'self.user_agent.session: {session}', session=self.user_agent.session)
 
 
-class BrowseInterpreter(StepInterpreter):
+class BrowseInterpreter(UserStepInterpreter):
+
     async def interpret_prompt(self, prompt):
+
+        def get_prompt_link(ast_prompt: list) -> str:
+            for c in ast_prompt[0]['children']:
+                if c['type'] == 'link':
+                    return c['link']
+
         page = self.user_agent.page
-        # TODO: extract link from prompt
-        await page.goto("https://app.sporosdao.xyz/")
+        link = get_prompt_link(prompt)
+        logger.debug('prompt: {prompt},\n link: {link}',
+                     prompt=prompt, link=link)
+        await page.goto(link)
         await self.save_screenshot()
 
 
-class ClickInterpreter(StepInterpreter):
-    def __init__(self, *args, **kwargs):
-        super.__init__(*args, **kwargs)
+class ClickInterpreter(UserStepInterpreter):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.refexp = RefExp()
+
+    def xyxy(self, point=None, page=None):
+        assert point is not None
+        assert page is not None
+        # Convert predicted point in [0..1] range coordinates to viewport coordinates
+        vpSize = page.viewport_size
+        cpTranslated = {
+            'x': int(point['x'] * vpSize['width']),
+            'y': int(point['y'] * vpSize['height'])
+        }
+        return cpTranslated
 
     async def interpret_prompt(self, prompt=None):
         assert prompt is not None
@@ -49,11 +75,14 @@ class ClickInterpreter(StepInterpreter):
           prompt(str): natural language prompt
         """
         page = self.user_agent.page
-        with Image.open(self.saved_screenshot_path) as image:
+        path = self.saved_screenshot_path
+        logger.debug('self.saved_screenshot_path: {path}', path=path)
+        text = get_prompt_text(prompt)
+        with Image.open(path) as image:
             annotated_image, center_point = self.refexp.process_refexp(
-                image=image, prompt=prompt)
+                image=image, prompt=text)
             annotated_image.save(
-                f'{self.saved_screenshot_path}_click_annotated.png')
+                f'{path}_click_annotated.png')
             logger.debug("center point: {cp}", cp=center_point
                          )
             width, height = image.size
@@ -66,21 +95,23 @@ class ClickInterpreter(StepInterpreter):
         await self.save_screenshot()
 
 
-class KBInputInterpreter(StepInterpreter):
+class KBInputInterpreter(UserStepInterpreter):
     async def interpret_prompt(self, prompt):
         page = self.user_agent.page
-        _, value = prompt.split(' ', 1)
+        text = get_prompt_text(prompt)
+        _, value = text.split(' ', 1)
         await page.keyboard.type(value)
         # wait up to 2 seconds for the page to update as a result of click()
         await page.wait_for_timeout(2000)
         await self.save_screenshot()
 
 
-class ScrollInterpreter(StepInterpreter):
+class ScrollInterpreter(UserStepInterpreter):
     async def interpret_prompt(self, prompt):
         page = self.user_agent.page
-        _, direction = prompt.split(' ', 1)
-        direction = direction.trim().lower()
+        text = get_prompt_text(prompt)
+        _, direction = text.split(' ', 1)
+        direction = direction.lower()
         if direction == 'up':
             await page.keyboard.press("PageUp")
         elif direction == 'down':
@@ -102,34 +133,38 @@ class UserSteps(StorySection):
         KEYPRESS = auto()
         REVIEW = auto()
 
-    interpreters = {
-        ClassLabels.CLICK: ClickInterpreter,
-        ClassLabels.BROWSE: BrowseInterpreter,
-        ClassLabels.KB_INPUT: KBInputInterpreter,
-        ClassLabels.SCROLL: ScrollInterpreter
-    }
+    def __init__(self, user_agent=None, **kwargs):
+        super().__init__(user_agent=user_agent, **kwargs)
+        self.interpreters = {
+            self.ClassLabels.CLICK: ClickInterpreter(user_agent=self.user_agent),
+            self.ClassLabels.BROWSE: BrowseInterpreter(user_agent=self.user_agent),
+            self.ClassLabels.KB_INPUT: KBInputInterpreter(user_agent=self.user_agent),
+            self.ClassLabels.SCROLL: ScrollInterpreter(
+                user_agent=self.user_agent)
+        }
 
-    def classify_prompt(self, prompt: str = None):
+    def classify_prompt(self, prompt: list = None):
         """
-        Classifies a natural language prompt as one of multiple predefined options.
+        Classifies a natural language prompt in md-AST format as one of multiple predefined options.
         """
         assert prompt is not None
-        prompt = prompt.lower().trim()
-        if prompt.lower().startswith('scroll'):
+        text = get_prompt_text(prompt)
+        text = text.lower().strip()
+        if text.startswith('scroll'):
             return self.ClassLabels.SCROLL
-        elif prompt.lower().startswith('press'):
+        elif text.startswith('press'):
             return self.ClassLabels.KEYPRESS
-        elif prompt.lower().startswith('review'):
+        elif text.startswith('review'):
             return self.ClassLabels.REVIEW
-        elif re.match(r'type\b|input\b|enter\b', prompt.lower()):
+        elif re.match(r'type\b|input\b|enter\b', text):
             return self.ClassLabels.KB_INPUT
-        elif re.match(r'click\b|select\b|tap\b', prompt.lower()):
+        elif re.match(r'click\b|select\b|tap\b', text):
             return self.ClassLabels.CLICK
-        elif re.match(r'browse\b', prompt.lower()):
-            return self.ClassLabels.CLICK
+        elif re.match(r'browse\b', text):
+            return self.ClassLabels.BROWSE
 
     def get_interpreter_by_class(self, prompt_class=None) -> StepInterpreter:
         """
         Look for the interpreter of a specific prompt class.
         """
-        return self.interpreters(prompt_class)
+        return self.interpreters[prompt_class]
