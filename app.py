@@ -24,7 +24,7 @@ async def story_check(story: str):
         story_interpreter = StoryInterpreter(
             user_story=user_story, user_agent=user_agent)
         logger.debug("Running Story Check...")
-        result = story_interpreter.run()
+        result = await story_interpreter.run()
     except Exception as e:
         logger.exception("Story Check Error: {e}", e=e)
         result = 'Error'

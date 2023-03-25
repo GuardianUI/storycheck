@@ -1,9 +1,10 @@
-from . import StorySection
+from .section import StorySection
+from .step import StepInterpreter
 
 
 class ExpectedResults(StorySection):
 
-    class StepInterpreter(StorySection.StepInterpreter):
+    class StepInterpreter(StepInterpreter):
         def interpret_prompt(self):
             """
             Interpret in computer code the intention of the natural language input prompt.

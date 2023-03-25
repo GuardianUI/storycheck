@@ -1,5 +1,6 @@
-from . import StorySection, StepInterpreter
-from ai import RefExp
+from .section import StorySection
+from .step import StepInterpreter
+from .ai import RefExp
 from enum import Enum, auto
 import re
 import time
@@ -31,7 +32,7 @@ class ClickInterpreter(StepInterpreter):
         super.__init__(*args, **kwargs)
         self.refexp = RefExp()
 
-    def interpret_prompt(self, prompt=None, screenshot_path: str = None):
+    async def interpret_prompt(self, prompt=None, screenshot_path: str = None):
         assert prompt is not None
         assert screenshot_path is not None
         """
@@ -90,7 +91,7 @@ class UserSteps(StorySection):
         CLICK = auto()
         BROWSE = auto()
         SCROLL = auto()
-        KB_TYPE = auto()
+        KB_INPUT = auto()
         KEYPRESS = auto()
         REVIEW = auto()
 

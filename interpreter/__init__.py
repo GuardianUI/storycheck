@@ -1,9 +1,7 @@
 from loguru import logger
-from PIL import Image
-from abc import abstractmethod, ABC
-from prerequisites import Prerequisites
-from user_steps import UserSteps
-from expected_results import ExpectedResults
+from .prerequisites import Prerequisites
+from .user_steps import UserSteps
+from .expected_results import ExpectedResults
 
 
 async def log_browser_console_message(msg):
@@ -30,54 +28,6 @@ def xyxy(point=None, page=None):
     return cpTranslated
 
 
-class StepInterpreter(ABC):
-
-    def __init__(self, user_agent=None):
-        assert user_agent is not None
-        self.user_agent = user_agent
-
-    @abstractmethod
-    def interpret_prompt(self, prompt=None, **kwargs):
-        """
-        Interpret in computer code the intention of a natural language input prompt.
-
-        Parameters:
-          prompt(str): natural language prompt
-        """
-        pass
-
-
-class StorySection(ABC):
-
-    def __init__(self, user_agent=None, prompts: list = None):
-        assert user_agent is not None
-        assert prompts is not None
-        self.prompts = prompts
-        self.user_agent = user_agent
-
-    def run(self):
-        """
-        Run all steps in this story section.
-        """
-        for p in self.prompts:
-            prompt_class = self.classify_prompt(p)
-            interpreter = self.get_interpreter_by_class(prompt_class)
-            interpreter.interpret_prompt(p)
-
-    @abstractmethod
-    def classify_prompt(self, prompt: str = None):
-        """
-        Classifies a natural language prompt as one of multiple predefined options.
-        """
-        pass
-
-    @abstractmethod
-    def get_interpreter_by_class(self, prompt_class=None) -> StepInterpreter:
-        """
-        Look for the interpreter of a specific prompt class.
-        """
-
-
 class StoryInterpreter:
     """
     Given a populated UserStory object, it iterates over the list of
@@ -95,20 +45,19 @@ class StoryInterpreter:
         self.user_agent = user_agent
         # init ai model
 
-    def run(self):
+    async def run(self):
         page = self.user_agent.page
         page.on("console", log_browser_console_message)
 
         prerequisites = Prerequisites(user_agent=self.user_agent,
                                       prompts=self.user_story.prerequisites)
-        prerequisites.run()
+        await prerequisites.run()
         user_steps = UserSteps(user_agent=self.user_agent,
                                prompts=self.user_story.user_steps)
-        user_steps.run()
+        await user_steps.run()
         expected_results = ExpectedResults(
             user_agent=self.user_agent, prompts=self.user_story.expected_results)
-        expected_results.run()
-        # TODO: implement proper result object with success and error properties
+        await expected_results.run()
         page = self.user_agent.page
         # get mock wallet address
         address = await page.evaluate("() => window.ethereum.signer.address")
@@ -120,5 +69,6 @@ class StoryInterpreter:
             address)
         logger.info(
             'user mock wallet account balance: {balance}', balance=balance)
+        # TODO: implement proper result object with success and error properties
         result = 'Success'
         return result
