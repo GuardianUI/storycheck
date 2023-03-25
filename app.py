@@ -8,18 +8,6 @@ from dotenv import load_dotenv
 from markdown import StoryParser, UserStory
 
 
-def xyxy(point=None, page=None):
-    assert point is not None
-    assert page is not None
-    # Convert predicted point in [0..1] range coordinates to viewport coordinates
-    vpSize = page.viewport_size
-    cpTranslated = {
-        'x': int(point['x'] * vpSize['width']),
-        'y': int(point['y'] * vpSize['height'])
-    }
-    return cpTranslated
-
-
 async def story_check(story: str):
     logger.debug("Story Check starting for user story:\n {story}", story=story)
     try:
@@ -30,7 +18,7 @@ async def story_check(story: str):
         await user_agent.start()
         # init md parser
         parser = StoryParser()
-        user_story: UserStory = parser.parse(user_story=user_story,
+        user_story: UserStory = parser.parse(story=story,
                                              user_agent=user_agent)
 
         logger.debug("Running Story Check...")

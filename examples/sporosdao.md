@@ -6,7 +6,7 @@
 
 ## User Steps
 
-1. Go to https://app.sporosdao.xyz/
+1. Browse to https://app.sporosdao.xyz/
 1. Click on Connect Wallet in the top right corner
 1. Click on circle icon in the top right corner
 1. Click on Create a new company button
