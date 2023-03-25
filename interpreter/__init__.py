@@ -31,10 +31,18 @@ def xyxy(point=None, page=None):
 
 
 class StepInterpreter(ABC):
+
+    def __init__(self, user_agent=None):
+        assert user_agent is not None
+        self.user_agent = user_agent
+
     @abstractmethod
-    def interpret_prompt(self, prompt):
+    def interpret_prompt(self, prompt=None, **kwargs):
         """
-        Interpret in computer code the intention of the natural language input prompt.
+        Interpret in computer code the intention of a natural language input prompt.
+
+        Parameters:
+          prompt(str): natural language prompt
         """
         pass
 
@@ -101,5 +109,16 @@ class StoryInterpreter:
             user_agent=self.user_agent, prompts=self.user_story.expected_results)
         expected_results.run()
         # TODO: implement proper result object with success and error properties
+        page = self.user_agent.page
+        # get mock wallet address
+        address = await page.evaluate("() => window.ethereum.signer.address")
+        logger.info(
+            'user mock wallet account address: {address}', address=address)
+        # check mock wallet balance
+        balance = await page.evaluate(
+            "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
+            address)
+        logger.info(
+            'user mock wallet account balance: {balance}', balance=balance)
         result = 'Success'
         return result

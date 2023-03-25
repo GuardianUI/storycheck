@@ -18,6 +18,15 @@ class RefExp:
     device = None
     loaded_revision = None
 
+    def __init__(self,
+                 model_revision: str = 'main'):
+        if not model_revision:
+            model_revision = 'main'
+        logger.debug(
+            "model checkpoint revision: {model_revision}",
+            model_revision=model_revision)
+        self.load_model(model_revision)
+
     def load_model(self, pretrained_revision: str = 'main'):
         pretrained_repo_name = 'ivelin/donut-refexp-click'
         # revision can be git commit hash, branch or tag
@@ -118,20 +127,10 @@ class RefExp:
 
     def process_refexp(self, image: Image,
                        prompt: str,
-                       model_revision: str = 'main',
                        return_annotated_image: bool = True):
 
         logger.debug(
             "(image, prompt): {image}, {prompt}", image=image, prompt=prompt)
-
-        if not model_revision:
-            model_revision = 'main'
-
-        logger.debug(
-            "model checkpoint revision: {model_revision}",
-            model_revision=model_revision)
-
-        self.load_model(model_revision)
 
         # trim prompt to 80 characters and normalize to lowercase
         prompt = prompt[:80].lower()
