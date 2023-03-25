@@ -1,4 +1,5 @@
 from abc import abstractmethod, ABC
+from loguru import logger
 
 
 class StepInterpreter(ABC):
@@ -8,7 +9,7 @@ class StepInterpreter(ABC):
         self.user_agent = user_agent
 
     @abstractmethod
-    async def interpret_prompt(self, prompt=None, **kwargs):
+    async def interpret_prompt(self, prompt: str):
         """
         Interpret in computer code the intention of a natural language input prompt.
 
@@ -16,3 +17,12 @@ class StepInterpreter(ABC):
           prompt(str): natural language prompt
         """
         pass
+
+
+class NotImplementedInterpreter(StepInterpreter):
+    """
+    Placeholder for prompts that cannot be interpreted.
+    """
+    async def interpret_prompt(self, prompt: str):
+        logger.warning(
+            'Interpreter not implemented for prompt: {prompt}', prompt=prompt)

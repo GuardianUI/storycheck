@@ -9,14 +9,22 @@ from PIL import Image
 
 
 class UserStepInterpreter(StepInterpreter):
-    saved_screenshot_path = None
+
+    @property
+    def saved_screenshot_path(self):
+        self.user_agent.session.saved_screenshot_path
+
+    @saved_screenshot_path.setter
+    def saved_screenshot_path(self, path):
+        self.user_agent.session.saved_screenshot_path = path
 
     async def save_screenshot(self):
-        self.saved_screenshot_path = f'{time.monotonic_ns()}_{self.__class__()}.png'
-        await self.user_agent.page.screenshot(path=self.saved_screenshot_path,
+        path = f'{time.monotonic_ns()}_{self.__class__()}.png'
+        await self.user_agent.page.screenshot(path=path,
                                               animations='disabled',
                                               caret='initial',
                                               full_page=True)
+        self.saved_screenshot_path = path
 
 
 class BrowseInterpreter(StepInterpreter):
@@ -32,21 +40,20 @@ class ClickInterpreter(StepInterpreter):
         super.__init__(*args, **kwargs)
         self.refexp = RefExp()
 
-    async def interpret_prompt(self, prompt=None, screenshot_path: str = None):
+    async def interpret_prompt(self, prompt=None):
         assert prompt is not None
-        assert screenshot_path is not None
         """
         Interpret in computer code the intention of the natural language input prompt.
 
         Parameters:
           prompt(str): natural language prompt
-          screenshot_path(str): most recent page screenshot
         """
         page = self.user_agent.page
-        with Image.open(screenshot_path) as image:
+        with Image.open(self.saved_screenshot_path) as image:
             annotated_image, center_point = self.refexp.process_refexp(
                 image=image, prompt=prompt)
-            annotated_image.save(f'{screenshot_path}_click_annotated.png')
+            annotated_image.save(
+                f'{self.saved_screenshot_path}_click_annotated.png')
             logger.debug("center point: {cp}", cp=center_point
                          )
             width, height = image.size

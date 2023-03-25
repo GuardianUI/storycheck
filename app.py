@@ -19,8 +19,7 @@ async def story_check(story: str):
         await user_agent.start()
         # init md parser
         parser = StoryParser()
-        user_story: UserStory = parser.parse(story=story,
-                                             user_agent=user_agent)
+        user_story: UserStory = parser.parse(story)
         story_interpreter = StoryInterpreter(
             user_story=user_story, user_agent=user_agent)
         logger.debug("Running Story Check...")

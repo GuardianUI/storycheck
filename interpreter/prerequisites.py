@@ -1,5 +1,5 @@
 from .section import StorySection
-from .step import StepInterpreter
+from .step import StepInterpreter, NotImplementedInterpreter
 
 
 class Prerequisites(StorySection):
@@ -21,4 +21,4 @@ class Prerequisites(StorySection):
         """
         Look for the interpreter of a specific prompt class.
         """
-        pass
+        return NotImplementedInterpreter

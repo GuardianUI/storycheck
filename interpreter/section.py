@@ -10,14 +10,14 @@ class StorySection(ABC):
         self.prompts = prompts
         self.user_agent = user_agent
 
-    def run(self):
+    async def run(self):
         """
         Run all steps in this story section.
         """
         for p in self.prompts:
             prompt_class = self.classify_prompt(p)
             interpreter = self.get_interpreter_by_class(prompt_class)
-            interpreter.interpret_prompt(p)
+            await interpreter.interpret_prompt(p)
 
     @abstractmethod
     def classify_prompt(self, prompt: str = None):

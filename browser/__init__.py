@@ -4,11 +4,10 @@ from pathlib import Path
 
 
 class UserAgent:
-    prerequisites = None
-    page = None
 
-    def __init__(self, prerequisites=None):
-        self.prerequisites = prerequisites
+    def __init__(self):
+        # shared session object during a story check run
+        self.session = dict()
 
     async def start(self):
         logger.debug("Starting playwright user agent...")
