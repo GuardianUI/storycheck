@@ -1,17 +1,11 @@
 from .section import StorySection
-from .step import StepInterpreter
+from .step import StepInterpreter, get_prompt_text
 from .ai import RefExp
 from enum import Enum, auto
 import re
 import time
 from loguru import logger
 from PIL import Image
-
-
-def get_prompt_text(ast_prompt: list) -> str:
-    for c in ast_prompt[0]['children']:
-        if c['type'] == 'text':
-            return c['text']
 
 
 class UserStepInterpreter(StepInterpreter):
@@ -26,14 +20,13 @@ class UserStepInterpreter(StepInterpreter):
         path = f'results/{time.monotonic_ns()}_{self.__class__.__name__}.png'
         await self.user_agent.page.screenshot(path=path,
                                               animations='disabled',
-                                              caret='initial',
-                                              full_page=True)
+                                              caret='initial')
         self.user_agent.session['saved_screenshot_path'] = path
         # logger.debug(
         #     'self.user_agent.session: {session}', session=self.user_agent.session)
 
 
-class BrowseInterpreter(UserStepInterpreter):
+class BrowseStep(UserStepInterpreter):
 
     async def interpret_prompt(self, prompt):
 
@@ -50,7 +43,7 @@ class BrowseInterpreter(UserStepInterpreter):
         await self.save_screenshot()
 
 
-class ClickInterpreter(UserStepInterpreter):
+class ClickStep(UserStepInterpreter):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.refexp = RefExp()
@@ -95,7 +88,7 @@ class ClickInterpreter(UserStepInterpreter):
         await self.save_screenshot()
 
 
-class KBInputInterpreter(UserStepInterpreter):
+class KBInputStep(UserStepInterpreter):
     async def interpret_prompt(self, prompt):
         page = self.user_agent.page
         text = get_prompt_text(prompt)
@@ -106,7 +99,7 @@ class KBInputInterpreter(UserStepInterpreter):
         await self.save_screenshot()
 
 
-class ScrollInterpreter(UserStepInterpreter):
+class ScrollStep(UserStepInterpreter):
     async def interpret_prompt(self, prompt):
         page = self.user_agent.page
         text = get_prompt_text(prompt)
@@ -125,7 +118,7 @@ class ScrollInterpreter(UserStepInterpreter):
 
 class UserSteps(StorySection):
 
-    class ClassLabels(Enum):
+    class StepLabels(Enum):
         CLICK = auto()
         BROWSE = auto()
         SCROLL = auto()
@@ -136,10 +129,10 @@ class UserSteps(StorySection):
     def __init__(self, user_agent=None, **kwargs):
         super().__init__(user_agent=user_agent, **kwargs)
         self.interpreters = {
-            self.ClassLabels.CLICK: ClickInterpreter(user_agent=self.user_agent),
-            self.ClassLabels.BROWSE: BrowseInterpreter(user_agent=self.user_agent),
-            self.ClassLabels.KB_INPUT: KBInputInterpreter(user_agent=self.user_agent),
-            self.ClassLabels.SCROLL: ScrollInterpreter(
+            self.StepLabels.CLICK: ClickStep(user_agent=self.user_agent),
+            self.StepLabels.BROWSE: BrowseStep(user_agent=self.user_agent),
+            self.StepLabels.KB_INPUT: KBInputStep(user_agent=self.user_agent),
+            self.StepLabels.SCROLL: ScrollStep(
                 user_agent=self.user_agent)
         }
 

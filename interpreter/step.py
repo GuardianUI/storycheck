@@ -2,6 +2,15 @@ from abc import abstractmethod, ABC
 from loguru import logger
 
 
+def get_prompt_text(ast_prompt: list) -> str:
+    """
+    Helper method for pulling text value from a parsed MD AST structure
+    """
+    for c in ast_prompt[0]['children']:
+        if c['type'] == 'text':
+            return c['text']
+
+
 class StepInterpreter(ABC):
 
     def __init__(self, user_agent=None):

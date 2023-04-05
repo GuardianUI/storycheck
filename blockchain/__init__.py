@@ -10,19 +10,25 @@ class LocalChain:
     # OS reference to an anvil subprocesses
     anvil_proc = None
 
-    async def start(self):
+    RPC_URLs = {
+        '1': 'https://eth-mainnet.g.alchemy.com/v2/0Uk2xg_qksy5OMviwu8MOHMHVJX4mQ1D',
+        '42161': 'https://arb-mainnet.g.alchemy.com/v2/Kjt13n8OuVVCBqxIGMGYuwgbnLzfh1U6'
+    }
+
+    async def start(self, chain_id='1', block_n=None):
         # Create the subprocess; redirect the standard output
         # into a pipe.
-        block_n = "72511674"
+        assert isinstance(chain_id, str)
+        chain_args = ["--chain-id", chain_id, "--fork-url", self.RPC_URLs[chain_id]]
+        if block_n is not None:
+            assert isinstance(block_n, str)
+            block_args = ["--fork-block-number", block_n]
         logger.debug(
-            'Starting anvil ETH Mainnet Fork at Block: {block_n}', block_n=block_n)
+            'Starting anvil EVM Fork for ChainID: {chain_id} at Block: {block_n}', block_n=block_n)
         self.anvil_proc = await asyncio.create_subprocess_exec(
             "anvil",
-            # "https://eth-mainnet.g.alchemy.com/v2/0Uk2xg_qksy5OMviwu8MOHMHVJX4mQ1D",
-            "--fork-url", "https://arb-mainnet.g.alchemy.com/v2/Kjt13n8OuVVCBqxIGMGYuwgbnLzfh1U6",
-            # "--fork-block-number", block_n,
-            "--chain-id",
-            "42161",  # Arbitrum One
+            *chain_args,
+            *block_args,
             # "--no-mining"
         )
         logger.debug(

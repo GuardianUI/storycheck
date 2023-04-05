@@ -12,9 +12,6 @@ from interpreter import StoryInterpreter
 async def story_check(story: str):
     logger.debug("Story Check starting for user story:\n {story}", story=story)
     try:
-        # start local blockchain fork
-        chain = LocalChain()
-        await chain.start()
         user_agent = UserAgent()
         await user_agent.start()
         # init md parser
@@ -38,7 +35,7 @@ async def main():
     logger.add("storycheck.log", rotation="2 MB", enqueue=True)
     load_dotenv()
     title = "StoryCheck Playground by GuardianUI"
-    with open('examples/sporosdao.md', 'r') as file:
+    with open('examples/silofi.md', 'r') as file:
         initial_story = file.read()
     with gr.Blocks(title=title) as demo:
         with gr.Tab("Edit"):
