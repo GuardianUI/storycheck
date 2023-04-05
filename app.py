@@ -1,7 +1,6 @@
 import gradio as gr
 from loguru import logger
 import asyncio
-from blockchain import LocalChain
 from browser import UserAgent
 
 from dotenv import load_dotenv
@@ -26,7 +25,6 @@ async def story_check(story: str):
         result = 'Error'
     finally:
         await user_agent.stop()
-        await chain.stop()
         logger.debug("Story Check Finished.")
     return result
 

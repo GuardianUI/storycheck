@@ -2,7 +2,8 @@
 
 ## Prerequisites
 
-- ChainId 42161
+- Chain
+  - Id 42161
 
 ## User Steps
 

@@ -15,7 +15,7 @@ class UserAgent:
         chromium = self.playwright.chromium
         pixel5 = self.playwright.devices["Pixel 5"]
         self.browser = await chromium.launch()
-        browser_context = await self.browser.new_context(**pixel5)
+        browser_context = await self.browser.new_context(**pixel5, record_video_dir="results/videos/")
         here = Path(__file__).parent
         fname = here / "mock_wallet/provider/provider.js"
         # TODO: find a way to pass prerequisites to js init script

@@ -37,16 +37,17 @@ class StoryInterpreter:
         page = self.user_agent.page
         page.on("console", log_browser_console_message)
 
-        prerequisites = Prerequisites(user_agent=self.user_agent,
-                                      prompts=self.user_story.prerequisites)
-        with prerequisites as prereqs:
-            await prereqs.run()
-            user_steps = UserSteps(user_agent=self.user_agent,
-                                prompts=self.user_story.user_steps)
-            await user_steps.run()
-            expected_results = ExpectedResults(
-                user_agent=self.user_agent, prompts=self.user_story.expected_results)
-            await expected_results.run()
+        async with Prerequisites(user_agent=self.user_agent,
+                                 prompts=self.user_story.prerequisites) as reqs:
+            logger.debug('reqs : {r}', r=reqs)
+            # run user steps section
+            # user_steps = UserSteps(user_agent=self.user_agent,
+            #                        prompts=self.user_story.user_steps)
+            # await user_steps.run()
+            # # run expected results section
+            # expected_results = ExpectedResults(
+            #     user_agent=self.user_agent, prompts=self.user_story.expected_results)
+            # await expected_results.run()
             page = self.user_agent.page
             # get mock wallet address
             address = await page.evaluate("() => window.ethereum.signer.address")
