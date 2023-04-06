@@ -10,9 +10,7 @@ from interpreter import StoryInterpreter
 
 async def story_check(story: str):
     logger.debug("Story Check starting for user story:\n {story}", story=story)
-    try:
-        user_agent = UserAgent()
-        await user_agent.start()
+    async with UserAgent() as user_agent:
         # init md parser
         parser = StoryParser()
         user_story: UserStory = parser.parse(story)
@@ -20,11 +18,6 @@ async def story_check(story: str):
             user_story=user_story, user_agent=user_agent)
         logger.debug("Running Story Check...")
         result = await story_interpreter.run()
-    except Exception as e:
-        logger.exception("Story Check Error: {e}", e=e)
-        result = 'Error'
-    finally:
-        await user_agent.stop()
         logger.debug("Story Check Finished.")
     return result
 

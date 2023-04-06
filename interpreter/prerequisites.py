@@ -4,18 +4,34 @@ import re
 from enum import Enum, auto
 from loguru import logger
 from .blockchain import LocalChain
+from pprint import pformat as pf
 
 
 class ChainReq(StepInterpreter):
 
     async def interpret_prompt(self, prompt):
 
-        def get_prompt_link(ast_prompt: list) -> str:
-            for c in ast_prompt[0]['children']:
-                if c['type'] == 'link':
-                    return c['link']
+        def get_kvs(ast_prompt: list) -> str:
+            """
+            breaks up a list of prompts in key, value pairs
+            for example if a is one of the prompts in the list
+            >>> a='id : 12345'
+            >>> f = re.search(r'(\w+\b)\s*[:= ]+\s*(\d+)', a, re.IGNORECASE)
+            >>> f.group(0), f.group(1), f.group(2)
+            ('id : 12345', 'id', '12345')
+            """
+            kvs = {}
+            for c in ast_prompt[1]['children']:
+                if c['type'] == 'list_item':
+                    text = get_prompt_text(c['children'])
+                    m = re.search(
+                        r'(\w+\b)\s*[:= ]+\s*(\d+)', text, re.IGNORECASE)
+                    k = m.group(1)
+                    v = m.group(2)
+                    kvs[k] = v
+            return kvs
 
-        logger.debug('chain prompt: {prompt}')
+        logger.debug('chain prompt:\n {prompt}', prompt=pf(prompt))
         # chain_id = get_prompt_text(ast_prompt_id)
         # block_n = get_prompt_text(ast_prompt_block)
         # chain = LocalChain(chain_id=chain_id, block_n=block_n)
@@ -24,7 +40,7 @@ class ChainReq(StepInterpreter):
         # logger.debug('prompt chain id: {chain_id},\n block: {block_n}',
         #              chain_id=chain_id, block_n=block_n)
         # await chain.start()
-        logger.debug('chain prerequisite started')
+        logger.debug('chain prerequisite done.')
 
 
 class Prerequisites(StorySection):
@@ -60,14 +76,19 @@ class Prerequisites(StorySection):
         runs when prerequisite used in 'with' python construct
         """
         self.user_agent.chain = None
-        await self.run()
         logger.debug('__aenter__ done')
+        return self
 
-    async def __aexit__(self, type, value, traceback):
+    async def __aexit__(self, exception_type, exception_value, exception_traceback):
         """
         runs on exiting a 'with' python construct
         """
         # Exception handling here
+        if exception_type or exception_value:
+            logger.error('Exception\n type: {t},\n value: {v}, \n traceback: {tb}',
+                         t=exception_type,
+                         v=exception_value,
+                         tb=exception_traceback)
         chain = self.user_agent.chain
         if chain is not None:
             await chain.stop()

@@ -2,9 +2,9 @@
 
 ## Prerequisites
 
-- Chain
-  - Id 42161
-  - Block 77422693
+1. Chain
+   - Id 42161
+   - Block 77422693
 
 ## User Steps
 

@@ -12,7 +12,7 @@ tasks:
       cd -
     command: |
       foundryup
-      python3 app.py
+      ./run.sh
 
 ports:
   - name: StoryCheck Web App
