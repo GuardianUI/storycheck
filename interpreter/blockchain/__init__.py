@@ -7,7 +7,11 @@ class LocalChain:
     Wrapper around a local blockchain instance managed via Foundry Anvil
     """
 
-    # OS reference to an anvil subprocesses
+    def __init__(self, chain_id='1', block_n=None):
+        assert isinstance(chain_id, str)
+        self.chain_id = chain_id
+        self.block_n = block_n
+
     anvil_proc = None
 
     RPC_URLs = {
@@ -15,22 +19,28 @@ class LocalChain:
         '42161': 'https://arb-mainnet.g.alchemy.com/v2/Kjt13n8OuVVCBqxIGMGYuwgbnLzfh1U6'
     }
 
-    async def start(self, chain_id='1', block_n=None):
+    async def start(self):
         # Create the subprocess; redirect the standard output
         # into a pipe.
-        assert isinstance(chain_id, str)
-        chain_args = ["--chain-id", chain_id, "--fork-url", self.RPC_URLs[chain_id]]
-        if block_n is not None:
-            assert isinstance(block_n, str)
-            block_args = ["--fork-block-number", block_n]
+        chain_args = ["--chain-id", self.chain_id,
+                      "--fork-url", self.RPC_URLs[self.chain_id]]
+        if self.block_n is not None:
+            assert isinstance(self.block_n, str)
+            block_args = ["--fork-block-number", self.block_n]
+        else:
+            block_args = []
         logger.debug(
-            'Starting anvil EVM Fork for ChainID: {chain_id} at Block: {block_n}', block_n=block_n)
+            'Starting anvil EVM Fork with args: {chain} {block}',
+            chain=chain_args,
+            block=block_args)
         self.anvil_proc = await asyncio.create_subprocess_exec(
             "anvil",
             *chain_args,
             *block_args,
             # "--no-mining"
         )
+        # block for 10 seconds
+        await asyncio.sleep(10)
         logger.debug(
             'Started anvil. Process: {process}', process=self.anvil_proc.pid)
 
