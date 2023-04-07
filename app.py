@@ -21,7 +21,7 @@ async def story_check(story: str):
 
 
 async def main():
-    logger.add("storycheck.log", rotation="2 MB", enqueue=True)
+    logger.add("storycheck.log", rotation="2 MB")
     load_dotenv()
     title = "StoryCheck Playground by GuardianUI"
     with open('examples/silofi.md', 'r') as file:

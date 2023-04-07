@@ -38,21 +38,26 @@ class LocalChain:
             "anvil",
             *chain_args,
             *block_args,
-            # "--no-mining"
+            # "--no-mining",
+            stdout=asyncio.subprocess.PIPE
         )
+        logger.debug(
+            'Started anvil with process ID: {process}', process=self.anvil_proc.pid)
+        # read a line of output from the anvil process
+        anvil_output = await self.anvil_proc.stdout.readuntil(separator=b'Listening on 127.0.0.1:8545\n')
+        logger.debug('Anvil: {l}', l=anvil_output.decode())
         # wait for anvil RPC endpoint to become available
-        await asyncio.sleep(10)
         anvil_url = "http://127.0.0.1:8545"
-        wait_time = 30
-        timeout = ClientTimeout(total=wait_time)
         async with ClientSession() as session:
-            async with session.get(anvil_url, timeout=timeout) as response:
+            async with session.post(anvil_url) as response:
+                # logger.debug('Anvil server response: {r}', r=response)
                 if response.status == 200:
                     logger.debug(
-                        'Started anvil. Process: {process}', process=self.anvil_proc.pid)
+                        'Anvil RPC endpoint ready.')
                 else:
+                    # rtext = await response.text()
                     raise ConnectionError(
-                        f'Failed to start anvil. Timeout after {wait_time} seconds.')
+                        f'Failed to start anvil. Server status response: {response.status}')
 
     async def stop(self):
         # try to stop the process nicely

@@ -14,7 +14,6 @@ def get_prompt_text(ast_prompt: list) -> str:
 class StepInterpreter(ABC):
 
     def __init__(self, user_agent=None):
-        assert user_agent is not None
         self.user_agent = user_agent
 
     @abstractmethod

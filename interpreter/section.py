@@ -4,11 +4,9 @@ from .step import StepInterpreter
 
 class StorySection(ABC):
 
-    def __init__(self, user_agent=None, prompts: list = None):
-        assert user_agent is not None
+    def __init__(self, prompts: list = None):
         assert prompts is not None
         self.prompts = prompts
-        self.user_agent = user_agent
 
     async def run(self):
         """

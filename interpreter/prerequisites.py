@@ -5,9 +5,19 @@ from enum import Enum, auto
 from loguru import logger
 from .blockchain import LocalChain
 from pprint import pformat as pf
+from traceback import format_tb
 
 
-class ChainReq(StepInterpreter):
+class ReqStep(StepInterpreter):
+
+    async def aexit(self):
+        """
+        Clean up any resources allocated for prerequisites
+        """
+        pass
+
+
+class ChainReq(ReqStep):
 
     async def interpret_prompt(self, prompt):
 
@@ -43,11 +53,19 @@ class ChainReq(StepInterpreter):
         block_n = kvs.get('block', None)
         chain = LocalChain(chain_id=chain_id, block_n=block_n)
         # set chain in session context
-        self.user_agent.chain = chain
+        self.chain = chain
         logger.debug('prompt chain id: {chain_id},\n block: {block_n}',
                      chain_id=chain_id, block_n=block_n)
         await chain.start()
         logger.debug('chain prerequisite prepared.')
+
+    async def aexit(self):
+        """
+        Clean up any resources allocated for prerequisites
+        """
+        if self.chain is not None:
+            await self.chain.stop()
+            logger.debug('Local chain stopped.')
 
 
 class Prerequisites(StorySection):
@@ -82,7 +100,6 @@ class Prerequisites(StorySection):
         """
         runs when prerequisite used in 'with' python construct
         """
-        self.chain = None
         return self
 
     async def __aexit__(self, exception_type, exception_value, exception_traceback):
@@ -94,8 +111,6 @@ class Prerequisites(StorySection):
             logger.error('Exception\n type: {t},\n value: {v}, \n traceback: {tb}',
                          t=exception_type,
                          v=exception_value,
-                         tb=exception_traceback)
-        chain = self.user_agent.chain
-        if chain is not None:
-            await chain.stop()
-        logger.debug('Local chain stopped.')
+                         tb=pf(format_tb(exception_traceback)))
+        for label, interpreter in self.interpreters.items():
+            await interpreter.aexit()

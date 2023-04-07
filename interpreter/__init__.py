@@ -7,14 +7,16 @@ from .browser import UserAgent
 
 async def log_browser_console_message(msg):
     values = []
-    for arg in msg.args:
-        values.append(await arg.json_value())
     try:
-        level = logger.level(msg.type.upper()).name
-    except ValueError:
         level = 'DEBUG'
-    logger.log(
-        level, 'Browser console[{level}]: {s}', level=level, s=values)
+        for arg in msg.args:
+            values.append(await arg.json_value())
+            level = logger.level(msg.type.upper()).name
+        logger.log(
+            level, 'Browser console[{level}]: {s}', level=level, s=values)
+    except Exception as e:
+        logger.debug(
+            'Error while parsing browser console messages: message {m}', m=e.message)
 
 
 class StoryInterpreter:
@@ -32,15 +34,15 @@ class StoryInterpreter:
 
     async def run(self):
         async with Prerequisites(prompts=self.user_story.prerequisites) as reqs:
-            # run prereq steps
             await reqs.run()
             async with UserAgent() as user_agent:
                 page = user_agent.page
                 page.on("console", log_browser_console_message)
                 # run user steps section
-                # user_steps = UserSteps(user_agent=self.user_agent,
-                #                        prompts=self.user_story.user_steps)
-                # await user_steps.run()
+                logger.debug('user_agent: {ua}', ua=user_agent)
+                user_steps = UserSteps(user_agent=user_agent,
+                                       prompts=self.user_story.user_steps)
+                await user_steps.run()
                 pass
 
             # # run expected results section

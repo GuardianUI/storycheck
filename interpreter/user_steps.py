@@ -34,7 +34,7 @@ class BrowseStep(UserStepInterpreter):
             for c in ast_prompt[0]['children']:
                 if c['type'] == 'link':
                     return c['link']
-
+        logger.debug('self.user_agent: {ua}', ua=self.user_agent)
         page = self.user_agent.page
         link = get_prompt_link(prompt)
         logger.debug('prompt: {prompt},\n link: {link}',
@@ -127,13 +127,15 @@ class UserSteps(StorySection):
         REVIEW = auto()
 
     def __init__(self, user_agent=None, **kwargs):
-        super().__init__(user_agent=user_agent, **kwargs)
+        super().__init__(**kwargs)
+        assert user_agent is not None
+        logger.debug('user_agent: {ua}', ua=user_agent)
         self.interpreters = {
-            self.StepLabels.CLICK: ClickStep(user_agent=self.user_agent),
-            self.StepLabels.BROWSE: BrowseStep(user_agent=self.user_agent),
-            self.StepLabels.KB_INPUT: KBInputStep(user_agent=self.user_agent),
+            self.StepLabels.CLICK: ClickStep(user_agent=user_agent),
+            self.StepLabels.BROWSE: BrowseStep(user_agent=user_agent),
+            self.StepLabels.KB_INPUT: KBInputStep(user_agent=user_agent),
             self.StepLabels.SCROLL: ScrollStep(
-                user_agent=self.user_agent)
+                user_agent=user_agent)
         }
 
     def classify_prompt(self, prompt: list = None):
@@ -144,17 +146,17 @@ class UserSteps(StorySection):
         text = get_prompt_text(prompt)
         text = text.lower().strip()
         if text.startswith('scroll'):
-            return self.ClassLabels.SCROLL
+            return self.StepLabels.SCROLL
         elif text.startswith('press'):
-            return self.ClassLabels.KEYPRESS
+            return self.StepLabels.KEYPRESS
         elif text.startswith('review'):
-            return self.ClassLabels.REVIEW
+            return self.StepLabels.REVIEW
         elif re.match(r'type\b|input\b|enter\b', text):
-            return self.ClassLabels.KB_INPUT
+            return self.StepLabels.KB_INPUT
         elif re.match(r'click\b|select\b|tap\b', text):
-            return self.ClassLabels.CLICK
+            return self.StepLabels.CLICK
         elif re.match(r'browse\b', text):
-            return self.ClassLabels.BROWSE
+            return self.StepLabels.BROWSE
 
     def get_interpreter_by_class(self, prompt_class=None) -> StepInterpreter:
         """
