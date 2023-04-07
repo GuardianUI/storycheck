@@ -7,3 +7,4 @@ loguru
 asyncio
 python-dotenv
 mistune
+aiohttp

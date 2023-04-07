@@ -1,5 +1,6 @@
 import asyncio
 from loguru import logger
+from aiohttp import ClientSession, ClientTimeout
 
 
 class LocalChain:
@@ -39,10 +40,19 @@ class LocalChain:
             *block_args,
             # "--no-mining"
         )
-        # block for 10 seconds
+        # wait for anvil RPC endpoint to become available
         await asyncio.sleep(10)
-        logger.debug(
-            'Started anvil. Process: {process}', process=self.anvil_proc.pid)
+        anvil_url = "http://127.0.0.1:8545"
+        wait_time = 30
+        timeout = ClientTimeout(total=wait_time)
+        async with ClientSession() as session:
+            async with session.get(anvil_url, timeout=timeout) as response:
+                if response.status == 200:
+                    logger.debug(
+                        'Started anvil. Process: {process}', process=self.anvil_proc.pid)
+                else:
+                    raise ConnectionError(
+                        f'Failed to start anvil. Timeout after {wait_time} seconds.')
 
     async def stop(self):
         # try to stop the process nicely

@@ -56,10 +56,10 @@ class Prerequisites(StorySection):
         CHAIN = auto()
         USER_ETH_BALANCE = auto()
 
-    def __init__(self, user_agent=None, **kwargs):
-        super().__init__(user_agent=user_agent, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.interpreters = {
-            self.ReqLabels.CHAIN: ChainReq(user_agent=user_agent),
+            self.ReqLabels.CHAIN: ChainReq(),
         }
 
     def classify_prompt(self, prompt: list = None):
@@ -82,7 +82,7 @@ class Prerequisites(StorySection):
         """
         runs when prerequisite used in 'with' python construct
         """
-        self.user_agent.chain = None
+        self.chain = None
         return self
 
     async def __aexit__(self, exception_type, exception_value, exception_traceback):

@@ -1,7 +1,6 @@
 import gradio as gr
 from loguru import logger
 import asyncio
-from browser import UserAgent
 
 from dotenv import load_dotenv
 from markdown import StoryParser, UserStory
@@ -10,15 +9,14 @@ from interpreter import StoryInterpreter
 
 async def story_check(story: str):
     logger.debug("Story Check starting for user story:\n {story}", story=story)
-    async with UserAgent() as user_agent:
-        # init md parser
-        parser = StoryParser()
-        user_story: UserStory = parser.parse(story)
-        story_interpreter = StoryInterpreter(
-            user_story=user_story, user_agent=user_agent)
-        logger.debug("Running Story Check...")
-        result = await story_interpreter.run()
-        logger.debug("Story Check Finished.")
+    # init md parser
+    parser = StoryParser()
+    user_story: UserStory = parser.parse(story)
+    story_interpreter = StoryInterpreter(
+        user_story=user_story)
+    logger.debug("Running Story Check...")
+    result = await story_interpreter.run()
+    logger.debug("Story Check Finished.")
     return result
 
 
