@@ -15,6 +15,9 @@ class LocalChain:
 
     anvil_proc = None
 
+    ANVIL_HOST = '127.0.0.1'
+    ANVIL_PORT = '8545'
+
     RPC_URLs = {
         '1': 'https://eth-mainnet.g.alchemy.com/v2/0Uk2xg_qksy5OMviwu8MOHMHVJX4mQ1D',
         '42161': 'https://arb-mainnet.g.alchemy.com/v2/Kjt13n8OuVVCBqxIGMGYuwgbnLzfh1U6'
@@ -24,7 +27,9 @@ class LocalChain:
         # Create the subprocess; redirect the standard output
         # into a pipe.
         chain_args = ["--chain-id", self.chain_id,
-                      "--fork-url", self.RPC_URLs[self.chain_id]]
+                      "--fork-url", self.RPC_URLs[self.chain_id],
+                      "--host", self.ANVIL_HOST,
+                      "--port", self.ANVIL_PORT]
         if self.block_n is not None:
             assert isinstance(self.block_n, str)
             block_args = ["--fork-block-number", self.block_n]
@@ -39,25 +44,56 @@ class LocalChain:
             *chain_args,
             *block_args,
             # "--no-mining",
-            stdout=asyncio.subprocess.PIPE
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
         logger.debug(
             'Started anvil with process ID: {process}', process=self.anvil_proc.pid)
         # read a line of output from the anvil process
-        anvil_output = await self.anvil_proc.stdout.readuntil(separator=b'Listening on 127.0.0.1:8545\n')
-        logger.debug('Anvil: {l}', l=anvil_output.decode())
+        anvil_output = await self.anvil_proc.stdout.readuntil(separator=b'Listening on')
+        logger.debug('[Anvil stdout]: {l}', l=anvil_output.decode())
         # wait for anvil RPC endpoint to become available
-        anvil_url = "http://127.0.0.1:8545"
+        anvil_url = f"http://{self.ANVIL_HOST}:{self.ANVIL_PORT}"
         async with ClientSession() as session:
             async with session.post(anvil_url) as response:
                 # logger.debug('Anvil server response: {r}', r=response)
                 if response.status == 200:
                     logger.debug(
-                        'Anvil RPC endpoint ready.')
+                        'Anvil RPC endpoint is now available at: {url}', url=anvil_url)
                 else:
                     # rtext = await response.text()
                     raise ConnectionError(
                         f'Failed to start anvil. Server status response: {response.status}')
+        # capture anvil output in the unified logger
+
+        async def anvil_log(prefix='', stream=None):
+            assert stream is not None
+            if prefix == 'stderr':
+                level = 'WARNING'
+            else:
+                level = 'DEBUG'
+            while not stream.at_eof():
+                line = await stream.readline()
+                logger.log(level, '[Anvil {pref}]: {l}',
+                           pref=prefix, l=line.decode())
+
+        async def background_tasks():
+            self.background_tasks = set()
+
+            outlog_task = asyncio.create_task(
+                anvil_log(prefix='stdout', stream=self.anvil_proc.stdout))
+            background_tasks.add(outlog_task)
+            # To prevent keeping references to finished tasks forever,
+            # make each task remove its own reference from the set after
+            # completion:
+            outlog_task.add_done_callback(self.background_tasks.discard)
+
+            errlog_task = asyncio.create_task(
+                anvil_log(prefix='stderr', stream=self.anvil_proc.stderr))
+            background_tasks.add(errlog_task)
+            errlog_task.add_done_callback(self.background_tasks.discard)
+
+        background_tasks()
 
     async def stop(self):
         # try to stop the process nicely
@@ -65,6 +101,8 @@ class LocalChain:
             'Stopping anvil. Process: {process}', process=self.anvil_proc.pid)
         self.anvil_proc.terminate()
         try:
+            for task in self.background_tasks:
+                task.cancel()
             # wait 15 seconds for the process to terminate
             await asyncio.wait_for(self.anvil_proc.communicate(), timeout=3.0)
         except asyncio.subprocess.TimeoutExpired:

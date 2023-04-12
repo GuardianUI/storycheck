@@ -22,8 +22,8 @@ class UserStepInterpreter(StepInterpreter):
                                               animations='disabled',
                                               caret='initial')
         self.user_agent.session['saved_screenshot_path'] = path
-        # logger.debug(
-        #     'self.user_agent.session: {session}', session=self.user_agent.session)
+        logger.debug(
+            'self.user_agent.session: {session}', session=self.user_agent.session)
 
 
 class BrowseStep(UserStepInterpreter):
@@ -68,8 +68,9 @@ class ClickStep(UserStepInterpreter):
           prompt(str): natural language prompt
         """
         page = self.user_agent.page
+        # save a screenshot and send it to the refexp model
+        await self.save_screenshot()
         path = self.saved_screenshot_path
-        logger.debug('self.saved_screenshot_path: {path}', path=path)
         text = get_prompt_text(prompt)
         with Image.open(path) as image:
             annotated_image, center_point = self.refexp.process_refexp(
@@ -84,8 +85,8 @@ class ClickStep(UserStepInterpreter):
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
         # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await self.save_screenshot()
+        # await page.wait_for_timeout(2000)
+        # no need for explicit snapshot save when tracing is on
 
 
 class KBInputStep(UserStepInterpreter):
@@ -93,10 +94,10 @@ class KBInputStep(UserStepInterpreter):
         page = self.user_agent.page
         text = get_prompt_text(prompt)
         _, value = text.split(' ', 1)
-        await page.keyboard.type(value)
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await self.save_screenshot()
+        # add delay to type slower, like a user
+        await page.keyboard.type(value, delay=100)
+        # no need for explicit snapshot save when tracing is on
+        # await self.save_screenshot()
 
 
 class ScrollStep(UserStepInterpreter):
@@ -111,9 +112,8 @@ class ScrollStep(UserStepInterpreter):
             await page.keyboard.press("PageDown")
         else:
             logger.warning('scroll {dir} not implemented', dir=direction)
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await self.save_screenshot()
+        # no need for explicit snapshot save when tracing is on
+        # await self.save_screenshot()
 
 
 class UserSteps(StorySection):

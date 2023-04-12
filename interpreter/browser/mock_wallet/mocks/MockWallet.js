@@ -1,7 +1,6 @@
 import { Provider, JsonRpcProvider } from "@ethersproject/providers";
 import { Signer } from "ethers";
-import { Eip1193Bridge } from "@ethersproject/experimental/lib/eip1193-bridge";
-
+import { Eip1193Bridge } from "@ethersproject/experimental";
 class MockInternalMetaMask {
   isUnlocked() {
     console.warn("MockInternalMetaMask.isUnlocked", { signer, provider });

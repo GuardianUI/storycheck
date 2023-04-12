@@ -16,8 +16,8 @@ if (!window["ethereum"]) {
   const ANVIL_URL = "http://127.0.0.1:8545";
 
   // link to local foundry anvil fork of mainnet
-  const rpcProvider = new JsonRpcProvider(ANVIL_URL, 42161); // ChaindId: 1 for ETH mainnet, 42161 for Arbitrum One
-
+  const rpcProvider = new JsonRpcProvider(ANVIL_URL);
+  
   // create a new burn wallet for each test
   const signer = Wallet.createRandom();
   console.info('Created mock user wallet with address: ', signer.address)
@@ -29,12 +29,27 @@ if (!window["ethereum"]) {
 
   window["ethereum"] = provider;
 
+  const balance = provider.getBalance(
+    signer.address,
+    "latest"
+  );
+  console.info('User wallet balance is: ', balance)
+
   // Init wallet with story prerequisites
+  const newBalance = "0x1000"
+  console.info('Setting new balance for user wallet', signer.address, newBalance)
   provider.send("anvil_setBalance", [
                 signer.address,
                 // TODO: get actual initial balance from prerequisites section of story markdown
-                "0x1000000000000000000", // 1 ETH, 1*10^18
-            ])
+                newBalance,
+  ])
+
+  balance = provider.getBalance(
+    signer.address,
+    "latest"
+  );
+  console.info('User wallet balance is: ', balance)
+
 } else {
   console.info('ETH mock user wallet already exist in this browser context. User account address: ', signer.address)
 }

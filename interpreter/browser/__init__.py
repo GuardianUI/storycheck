@@ -17,14 +17,24 @@ class UserAgent:
         self.playwright = await async_playwright().start()
         chromium = self.playwright.chromium
         pixel5 = self.playwright.devices["Pixel 5"]
-        self.browser = await chromium.launch()
+        self.browser = await chromium.launch(
+            traces_dir="results/",
+            slow_mo=200)  # slow down (ms) so devs can see what's going on
         self.browser_context = await self.browser.new_context(
             **pixel5,
-            record_video_dir="results/videos/")
+            record_video_dir="results/videos/",
+            bypass_csp=True,
+        )
         here = Path(__file__).parent
         fname = here / "mock_wallet/provider/provider.js"
         # TODO: find a way to pass prerequisites to js init script
         await self.browser_context.add_init_script(path=fname)
+        await self.browser_context.tracing.start(
+            name='storycheck-trace',
+            screenshots=True,
+            snapshots=True,
+            sources=True,
+            title='StoryCheck-Trace')
         self.page = await self.browser_context.new_page()
         logger.debug("Started playwright user agent.")
         return self
@@ -39,6 +49,7 @@ class UserAgent:
                          t=exception_type,
                          v=exception_value,
                          tb=exception_traceback)
+        await self.browser_context.tracing.stop(path="results/trace.zip")
         await self.browser_context.close()
         await self.browser.close()
         await self.playwright.stop()

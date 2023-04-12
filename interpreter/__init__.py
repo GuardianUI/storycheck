@@ -15,7 +15,7 @@ async def log_browser_console_message(msg):
         logger.log(
             level, 'Browser console[{level}]: {s}', level=level, s=values)
     except Exception as e:
-        logger.debug(
+        logger.warning(
             'Error while parsing browser console messages: message {m}', m=e.message)
 
 
