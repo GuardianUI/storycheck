@@ -13,7 +13,7 @@ async def log_browser_console_message(msg):
             values.append(await arg.json_value())
             level = logger.level(msg.type.upper()).name
         logger.log(
-            level, 'Browser console[{level}]: {s}', level=level, s=values)
+            level, '[Browser console ({level})]: {s}', level=level, s=values)
     except Exception as e:
         logger.warning(
             'Error while parsing browser console messages: message {m}', m=e.message)

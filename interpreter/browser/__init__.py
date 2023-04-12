@@ -23,6 +23,7 @@ class UserAgent:
         self.browser_context = await self.browser.new_context(
             **pixel5,
             record_video_dir="results/videos/",
+            # Disable CORS checks in order to allow use of mock wallet
             bypass_csp=True,
         )
         here = Path(__file__).parent

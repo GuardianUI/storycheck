@@ -74,26 +74,16 @@ class LocalChain:
                 level = 'DEBUG'
             while not stream.at_eof():
                 line = await stream.readline()
-                logger.log(level, '[Anvil {pref}]: {l}',
+                logger.log(level, '[Anvil console ({pref})]: {l}',
                            pref=prefix, l=line.decode())
 
         async def background_tasks():
-            self.background_tasks = set()
+            await asyncio.gather(
+                anvil_log(prefix='stdout', stream=self.anvil_proc.stdout),
+                anvil_log(prefix='stderr', stream=self.anvil_proc.stderr)
+            )
 
-            outlog_task = asyncio.create_task(
-                anvil_log(prefix='stdout', stream=self.anvil_proc.stdout))
-            background_tasks.add(outlog_task)
-            # To prevent keeping references to finished tasks forever,
-            # make each task remove its own reference from the set after
-            # completion:
-            outlog_task.add_done_callback(self.background_tasks.discard)
-
-            errlog_task = asyncio.create_task(
-                anvil_log(prefix='stderr', stream=self.anvil_proc.stderr))
-            background_tasks.add(errlog_task)
-            errlog_task.add_done_callback(self.background_tasks.discard)
-
-        background_tasks()
+        self.background_tasks = asyncio.create_task(background_tasks())
 
     async def stop(self):
         # try to stop the process nicely
@@ -101,8 +91,7 @@ class LocalChain:
             'Stopping anvil. Process: {process}', process=self.anvil_proc.pid)
         self.anvil_proc.terminate()
         try:
-            for task in self.background_tasks:
-                task.cancel()
+            self.background_tasks.cancel()
             # wait 15 seconds for the process to terminate
             await asyncio.wait_for(self.anvil_proc.communicate(), timeout=3.0)
         except asyncio.subprocess.TimeoutExpired:
