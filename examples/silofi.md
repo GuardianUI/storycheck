@@ -1,10 +1,10 @@
-# Depositing ETH in Silo.finance XAI, ETH market
+# # Depositing ETH in Silo.finance MAGIC, ETH market on Arbitrum One
 
 ## Prerequisites
 
 1. Chain
    - Id 42161
-   - Block 77422693
+   - Block 79809606
 
 ## User Steps
 
