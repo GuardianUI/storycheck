@@ -5,6 +5,9 @@ import asyncio
 from dotenv import load_dotenv
 from markdown import StoryParser, UserStory
 from interpreter import StoryInterpreter
+from pathlib import Path
+
+RESULTS_DIR = Path('./results')
 
 
 async def story_check(story: str):
@@ -21,10 +24,10 @@ async def story_check(story: str):
 
 
 async def main():
-    logger.add("storycheck.log", rotation="2 MB")
+    logger.add(RESULTS_DIR / 'storycheck.log', rotation="2 MB")
     load_dotenv()
     title = "StoryCheck Playground by GuardianUI"
-    with open('examples/silofi.md', 'r') as file:
+    with open('examples/ens.md', 'r') as file:
         initial_story = file.read()
     with gr.Blocks(title=title) as demo:
         with gr.Tab("Edit"):

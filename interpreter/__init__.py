@@ -11,7 +11,10 @@ async def log_browser_console_message(msg):
         level = 'DEBUG'
         for arg in msg.args:
             values.append(await arg.json_value())
-            level = logger.level(msg.type.upper()).name
+            browser_level = msg.type.upper()
+            if browser_level == 'LOG':
+                browser_level = 'DEBUG'
+            level = logger.level(browser_level).name
         logger.log(
             level, '[Browser console ({level})]: {s}', level=level, s=values)
     except Exception as e:
