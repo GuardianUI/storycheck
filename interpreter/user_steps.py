@@ -33,6 +33,9 @@ class UserStepInterpreter(StepInterpreter):
           prompt(str): natural language prompt
         """
         assert prompt is not None
+        text = get_prompt_text(prompt)
+        logger.debug(
+            'Interpreting prompt: {prompt}', prompt=text)
         page = self.user_agent.page
         # make sure that page dynamic components are done rendering between steps
         logger.debug("Page rendering...")
@@ -44,6 +47,7 @@ class UserStepInterpreter(StepInterpreter):
         logger.debug("Page load state event received.")
         await page.wait_for_timeout(2000)
         logger.debug("Page done rendering.")
+        await self.save_screenshot()
 
 
 class BrowseStep(UserStepInterpreter):
@@ -61,7 +65,6 @@ class BrowseStep(UserStepInterpreter):
         logger.debug('prompt: {prompt},\n link: {link}',
                      prompt=prompt, link=link)
         await page.goto(link)
-        await self.save_screenshot()
 
 
 class ClickStep(UserStepInterpreter):
@@ -85,8 +88,6 @@ class ClickStep(UserStepInterpreter):
 
         # save a screenshot and send it to the refexp model
         page = self.user_agent.page
-        await page.wait_for_timeout(2000)
-        await self.save_screenshot()
         path = self.saved_screenshot_path
         text = get_prompt_text(prompt)
         with Image.open(path) as image:

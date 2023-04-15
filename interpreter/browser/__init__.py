@@ -1,6 +1,17 @@
 from playwright.async_api import async_playwright
 from loguru import logger
 from pathlib import Path
+from eth_account import Account
+
+
+def generate_private_key():
+    # Generate a new Ethereum account
+    account = Account.create()
+
+    # Get the mnemonic phrase
+    key = account.key.hex()
+
+    return key
 
 
 class UserAgent:
@@ -20,16 +31,26 @@ class UserAgent:
         self.browser = await chromium.launch(
             traces_dir="results/",
             slow_mo=200)  # slow down (ms) so devs can see what's going on
+        # expose mock private key in browser context for wallet initialization
+        mnemonic = generate_private_key()
         self.browser_context = await self.browser.new_context(
             **pixel5,
             record_video_dir="results/videos/",
             # Disable CORS checks in order to allow use of mock wallet
-            bypass_csp=True,
+            bypass_csp=True
         )
+
+        # def mockMnemonic():
+        #     return mnemonic
+        # await self.browser_context.expose_function("__mockMnemonic", mockMnemonic)
         here = Path(__file__).parent
         fname = here / "mock_wallet/provider/provider.js"
+        with open(Path(fname), "r") as file:
+            init_script = file.read().replace(
+                "'__MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
+
         # TODO: find a way to pass prerequisites to js init script
-        await self.browser_context.add_init_script(path=fname)
+        await self.browser_context.add_init_script(init_script)
         await self.browser_context.tracing.start(
             name='storycheck-trace',
             screenshots=True,

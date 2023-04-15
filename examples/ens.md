@@ -15,6 +15,9 @@
 1. Click on guardianuitest
 1. Scroll down
 1. Scroll down
+1. Press End
+1. Click Connect button
+1. Press End
 1. Click on the blue Request to Register button at the bottom
 
 ## Expected Results
