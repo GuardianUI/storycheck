@@ -25,32 +25,33 @@ export class MockWallet extends Eip1193Bridge {
     return this._isConnected
   }
 
-  async request(...args) {
-    console.debug("MockWallet.request", { args });
-        return await this.send(...args);
-  }
+  // async request(...args) {
+  //   console.debug("MockWallet.request", { args });
+  //       return await this.send(...args);
+  // }
 
   async sendAsync(...args) {
     console.debug("MockWallet.sendAsync", { args });
     return this.send(...args);
   }
 
-  async send(...args) {
-    console.debug("MockWallet.send START", { args });
+  async send(method, params) {
+    console.debug("MockWallet.send START", { method, params });
     try {
       // handle backwards compatibility with deprecated methods
-      if (args['method'] == 'eth_requestAccounts') {
+      if (method == 'eth_requestAccounts') {
         console.debug("MockWallet.send - mapping Metamask legacy eth_requestAccounts to ETH standard eth_accounts")
-        args['method'] = 'eth_accounts'
+        method = 'eth_accounts'
       }
       // forward to default bridge implementation
-      const result = await super.send(...args);
-      console.debug("MockWallet.send RETURNS result", { args, result });
+      const result = await super.send(method, params);
+      console.debug("MockWallet.send RETURNS result", { method, params, result });
       return result
     } catch (e) {
-      console.error("MockWallet.send THROWS error", { args, e }, e.stack);
+      console.error("MockWallet.send THROWS error", { method, params, e }, e.stack);
+      // throw e
     } finally {
-      console.debug("MockWallet.send END!", { args });
+      console.debug("MockWallet.send END!", { method, params });
     }
   }
 }

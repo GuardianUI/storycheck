@@ -45,7 +45,7 @@ class UserStepInterpreter(StepInterpreter):
         logger.debug("Page domcontentloaded event received.")
         await page.wait_for_load_state("load")
         logger.debug("Page load state event received.")
-        await page.wait_for_timeout(2000)
+        await page.wait_for_timeout(5000)
         logger.debug("Page done rendering.")
         await self.save_screenshot()
 
@@ -65,6 +65,7 @@ class BrowseStep(UserStepInterpreter):
         logger.debug('prompt: {prompt},\n link: {link}',
                      prompt=prompt, link=link)
         await page.goto(link)
+        await page.wait_for_load_state("networkidle")
 
 
 class ClickStep(UserStepInterpreter):

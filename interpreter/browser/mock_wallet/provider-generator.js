@@ -8,7 +8,7 @@
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Wallet } from "@ethersproject/wallet";
 import { MockWallet } from "./mocks/MockWallet";
-import { logger } from "ethers";
+import { ethers } from "ethers"
 
 function setupWallet() {
   // Setup an ethereum mock wallet
@@ -28,7 +28,7 @@ function setupWallet() {
 
     const pkey = '__MOCK__PRIVATE_KEY'
     console.info('mock wallet private key: ', { pkey })
-    const signer = new Wallet(pkey, rpcProvider);
+    const signer = new Wallet(pkey) // , rpcProvider);
     console.info('Created mock user wallet with address: ', signer.address)
     // signer = walletMnemonic.connect(provider)
     console.debug("Signer connected to Provider so it can use it for blockchain methods such as signer.getBalance().");
@@ -51,7 +51,9 @@ function setupWallet() {
     console.info('User wallet balance is: ', { balance })
 
     // Init wallet with story prerequisites
-    const newBalance = "0x1000"
+    // default balance: 10,000 ETH (same as anvil defaults)
+    const ethAmount = "10000"
+    const newBalance = ethers.utils.parseEther(ethAmount).toHexString()
     console.info('Setting new balance for user wallet', signer.address, newBalance)
     wallet.send("anvil_setBalance", [
       signer.address,
@@ -72,5 +74,5 @@ try {
   ]);
   console.info('User wallet balance is: ', { balance })
 } catch (e) {
-  console.error(e => console.error('Error while creating mock wallet', e, e.stack))
+  console.error('Error while creating mock wallet', e, e.stack)
 }
