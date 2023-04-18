@@ -27,7 +27,7 @@ async def main():
     logger.add(RESULTS_DIR / 'storycheck.log', rotation="2 MB")
     load_dotenv()
     title = "StoryCheck Playground by GuardianUI"
-    with open('examples/ens.md', 'r') as file:
+    with open('examples/sporosdao.md', 'r') as file:
         initial_story = file.read()
     with gr.Blocks(title=title) as demo:
         with gr.Tab("Edit"):
