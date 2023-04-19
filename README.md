@@ -90,9 +90,9 @@ flowchart TD
 │  │
 │  ├──┬─ interpreter — "Runtime engine which takes AST as input and executes it."
 │  │  │
-│  ├──┼─ browser — "Playwright browser driver."
-│  │  │
-│  │  ├─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context as Metamask."
+│  ├──┼──┬─ browser — "Playwright browser driver."
+│  │  │  │ 
+│  │  │  └─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context as Metamask."
 │  │  │
 │  │  ├─ ai — "RefExp GPT AI model that predicst UI element location based on natural language referring expressions."
 │  │  │
