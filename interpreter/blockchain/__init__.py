@@ -1,6 +1,6 @@
 import asyncio
 from loguru import logger
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 
 
 class LocalChain:
@@ -29,7 +29,8 @@ class LocalChain:
         chain_args = ["--chain-id", self.chain_id,
                       "--fork-url", self.RPC_URLs[self.chain_id],
                       "--host", self.ANVIL_HOST,
-                      "--port", self.ANVIL_PORT]
+                      "--port", self.ANVIL_PORT,
+                      "--no-cors"]
         if self.block_n is not None:
             assert isinstance(self.block_n, str)
             block_args = ["--fork-block-number", self.block_n]

@@ -1,6 +1,6 @@
 from .section import StorySection
 from .step import StepInterpreter, get_prompt_text
-from .ai import RefExp
+from .ai.remote_refexp import RemoteRefExp
 from enum import Enum, auto
 import re
 import time
@@ -38,13 +38,13 @@ class UserStepInterpreter(StepInterpreter):
             'Interpreting prompt: {prompt}', prompt=text)
         page = self.user_agent.page
         # make sure that page dynamic components are done rendering between steps
-        logger.debug("Page rendering...")
-        await page.wait_for_load_state("networkidle")
-        logger.debug("Page networkidle event received.")
-        await page.wait_for_load_state("domcontentloaded")
-        logger.debug("Page domcontentloaded event received.")
-        await page.wait_for_load_state("load")
-        logger.debug("Page load state event received.")
+        # logger.debug("Page rendering...")
+        # await page.wait_for_load_state("networkidle")
+        # logger.debug("Page networkidle event received.")
+        # await page.wait_for_load_state("domcontentloaded")
+        # logger.debug("Page domcontentloaded event received.")
+        # await page.wait_for_load_state("load")
+        # logger.debug("Page load state event received.")
         await page.wait_for_timeout(5000)
         logger.debug("Page done rendering.")
         await self.save_screenshot()
@@ -71,7 +71,7 @@ class BrowseStep(UserStepInterpreter):
 class ClickStep(UserStepInterpreter):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.refexp = RefExp()
+        self.refexp = RemoteRefExp()
 
     def xyxy(self, point=None, page=None):
         assert point is not None
@@ -92,7 +92,7 @@ class ClickStep(UserStepInterpreter):
         path = self.saved_screenshot_path
         text = get_prompt_text(prompt)
         with Image.open(path) as image:
-            annotated_image, center_point = self.refexp.process_refexp(
+            annotated_image, center_point = await self.refexp.process_refexp(
                 image=image, prompt=text)
             annotated_image.save(
                 f'{path}_click_annotated.png')
@@ -103,9 +103,9 @@ class ClickStep(UserStepInterpreter):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
-        await page.wait_for_load_state("networkidle")
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
+        # await page.wait_for_load_state("networkidle")
+        # # wait up to 2 seconds for the page to update as a result of click()
+        # await page.wait_for_timeout(2000)
 
 
 class KBInputStep(UserStepInterpreter):
@@ -135,7 +135,7 @@ class ScrollStep(UserStepInterpreter):
             await page.keyboard.press("PageDown")
         else:
             logger.warning('scroll {dir} not implemented', dir=direction)
-        await page.wait_for_timeout(2000)
+        # await page.wait_for_timeout(2000)
 
 
 class KeyPressStep(UserStepInterpreter):
@@ -146,7 +146,7 @@ class KeyPressStep(UserStepInterpreter):
         text = get_prompt_text(prompt)
         _, key = text.split(' ', 1)
         await page.keyboard.press(key)
-        await page.wait_for_timeout(2000)
+        # await page.wait_for_timeout(2000)
 
 
 class UserSteps(StorySection):
