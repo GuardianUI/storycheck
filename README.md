@@ -106,3 +106,9 @@ This project is pre-configured to build and run via Gitpod.
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/GuardianUI/storycheck)
 
 To run locally or in another dev environemtn, copy the steps from [`.gitpod.yml`](.gitpod.yml)
+
+## How to Build and Run
+
+Thanks for your interest in contributing!
+
+Please start with a [new discussion](https://github.com/GuardianUI/storycheck/discussions) before opening an Issue or Pull Request.
