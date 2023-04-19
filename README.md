@@ -1,6 +1,6 @@
 # StoryCheck
 
-StoryCheck for Web3 apps. Experimental web app playground as well and an API served via [Gradio](https://github.com/gradio-app/gradio) on port 7860.
+StoryCheck for Web3 apps based on Ethereum. Experimental app testing playground as well as an API served via [Gradio](https://github.com/gradio-app/gradio) on port `7860`.
 
 It takes as input markdown formatted user stories with steps written in natural language.
 Then it parses the text and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user.
@@ -10,7 +10,7 @@ Uses [RefExp GPT](https://huggingface.co/spaces/GuardianUI/ui-refexp-click) to p
 
 ```md
 
-# Creating a new DAO LLC via SporosDAO.xyz
+# Creating a new DAO LLC on Arbitrum One via SporosDAO.xyz
 
 ## Prerequisites
 
@@ -86,17 +86,19 @@ flowchart TD
 ```ml
 ├─ .\ — "Main StoryCheck python app."
 │  │
-│  ├─ browser — "Playwright browser driver."
+│  ├─ markdown — "Markdown parser. Outputs abstract syntax tree (AST) to interpreter."
+│  │
+│  ├──┬─ interpreter — "Runtime engine which takes AST as input and executes it."
+│  │  │
+│  ├──┼─ browser — "Playwright browser driver."
 │  │  │
 │  │  ├─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context as Metamask."
+│  │  │
+│  │  ├─ ai — "RefExp GPT AI model that predicst UI element location based on natural language referring expressions."
+│  │  │
+│  │  └─ blockchain — "Local EVM fork runtime via Foundry Anvil."
 │  │
-│  ├─ ai — "AI model that predicst UI element location based on natural language referring expressions."
-│  │
-│  ├─ blockchain — "Local EVM fork runtime via Foundry Anvil."
-│  │
-│  ├─ markdown — "Markdown parser."
-│  │
-│  ├─ examples — "Example user stories."
+│  └─ examples — "Example user stories."
 ```
 
 ## How to Build and Run
