@@ -3,7 +3,7 @@ import { Signer } from "ethers";
 import { Eip1193Bridge } from "@ethersproject/experimental";
 class MockInternalMetaMask {
   isUnlocked() {
-    console.warn("MockInternalMetaMask.isUnlocked", { signer, provider });
+    console.debug("MockInternalMetaMask.isUnlocked");
     return true;
   }
 }
@@ -25,14 +25,14 @@ export class MockWallet extends Eip1193Bridge {
     return this._isConnected
   }
 
-  // async request(...args) {
-  //   console.debug("MockWallet.request", { args });
-  //       return await this.send(...args);
-  // }
+  async request(...args) {
+    console.debug("MockWallet.request", { args });
+    return await this.send(...args);
+  }
 
   async sendAsync(...args) {
     console.debug("MockWallet.sendAsync", { args });
-    return this.send(...args);
+    return await this.send(...args);
   }
 
   async send(method, params) {

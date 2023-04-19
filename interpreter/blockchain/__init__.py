@@ -15,11 +15,16 @@ class LocalChain:
 
     anvil_proc = None
 
-    ANVIL_HOST = '127.0.0.1'
+    # listen on all IP addresses assigned to this host
+    ANVIL_HOST = '0.0.0.0'
     ANVIL_PORT = '8545'
 
     RPC_URLs = {
+        # ETH mainnet
         '1': 'https://eth-mainnet.g.alchemy.com/v2/0Uk2xg_qksy5OMviwu8MOHMHVJX4mQ1D',
+        # Goerli testnet
+        '5': 'https://eth-goerli.g.alchemy.com/v2/3HpUm27w8PfGlJzZa4jxnxSYs9vQN7FZ',
+        # Arbitrum
         '42161': 'https://arb-mainnet.g.alchemy.com/v2/Kjt13n8OuVVCBqxIGMGYuwgbnLzfh1U6'
     }
 
@@ -30,7 +35,9 @@ class LocalChain:
                       "--fork-url", self.RPC_URLs[self.chain_id],
                       "--host", self.ANVIL_HOST,
                       "--port", self.ANVIL_PORT,
-                      "--no-cors"]
+                      "--config-out", "results/anvil-out.json",
+                      #   "--no-cors"
+                      ]
         if self.block_n is not None:
             assert isinstance(self.block_n, str)
             block_args = ["--fork-block-number", self.block_n]
