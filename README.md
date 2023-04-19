@@ -107,7 +107,7 @@ This project is pre-configured to build and run via Gitpod.
 
 To run locally or in another dev environemtn, copy the steps from [`.gitpod.yml`](.gitpod.yml)
 
-## How to Build and Run
+## Contributing
 
 Thanks for your interest in contributing!
 
