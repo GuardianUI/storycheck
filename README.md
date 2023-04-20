@@ -6,6 +6,8 @@ It takes as input markdown formatted user stories with steps written in natural 
 Then it parses the text and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user.
 Uses [RefExp GPT](https://huggingface.co/spaces/GuardianUI/ui-refexp-click) to predict UI element coordinates given a referring experssion.
 
+Note: Storycheck is currently most reliable for testing the UI of smartphones and tablets.
+
 ## Example User Story Input
 
 ```md
