@@ -15,21 +15,21 @@ async function setupWallet() {
   // in this browser context,
   // unless there is already one in place
 
-  const wallet = window["ethereum"];
+  let wallet = window["ethereum"];
   if (!wallet) {
     const ANVIL_URL = "http://127.0.0.1:8545";
 
     // link to local foundry anvil fork of mainnet
     const rpcProvider = new JsonRpcProvider(ANVIL_URL) // , {chainId: 5});
-    console.info('JsonRpcProvider waiting to become ready')
+    console.debug('JsonRpcProvider waiting to become ready')
     const isRpcReady = await rpcProvider.ready
-    console.info('JsonRpcProvider readiness: ', { isRpcReady })
+    console.info('JsonRpcProvider ready: ', { isRpcReady })
     // console.info('JsonRpcProvider detecting chain id at: ', { ANVIL_URL })
     // network = await rpcProvider.getNetwork()
     // console.info('JsonRpcProvider detected network chain id: ', { ANVIL_URL, network })
 
     const pkey = '__MOCK__PRIVATE_KEY'
-    console.info('mock wallet private key: ', { pkey })
+    console.debug('mock wallet private key: ', { pkey })
     const signer = new Wallet(pkey, rpcProvider);
     console.info('Created mock user wallet with address: ', signer.address)
     console.debug("Signer connected to Provider so it can use it for blockchain methods such as signer.getBalance().");
@@ -37,24 +37,24 @@ async function setupWallet() {
     // emulate metamask wallet that does not require user UI interactions to confirm transactions
     // The focus is mainly on testing dapp's interaction with a live blockchain.
     // No emphasis on testing wallet UI until there is better support by wallet providers of automated testing.
-    const wallet = new MockWallet(signer, rpcProvider);
+    wallet = new MockWallet(signer, rpcProvider);
 
-    // // set the provider to use the mock wallet
-    rpcProvider.getSigner = () => wallet
-    console.info("Provider set to use mock wallet as a signer.");
+    // set the provider to use the mock signer
+    // rpcProvider.getSigner = () => signer
+    // console.debug("Provider set to use mock signer.");
 
 
     let balance = await wallet.send("eth_getBalance", [
       signer.address,
       "latest"
     ]);
-    console.info('User wallet balance is: ', { balance })
+    console.debug('User wallet balance is: ', { balance })
 
     // Init wallet with story prerequisites
     // default balance: 10,000 ETH (same as anvil defaults)
     const ethAmount = "10000"
     const newBalance = ethers.utils.parseEther(ethAmount).toHexString()
-    console.info('Setting new balance for user wallet', signer.address, newBalance)
+    console.debug('Setting new balance for user wallet', signer.address, newBalance)
     await wallet.send("anvil_setBalance", [
       signer.address,
       // TODO: get actual initial balance from prerequisites section of story markdown
@@ -71,12 +71,25 @@ async function setupWallet() {
   return wallet
 }
 
+var getStackTrace = function() {
+  var obj = {};
+  Error.captureStackTrace(obj, getStackTrace);
+  return obj.stack;
+};
+
 const wallet = setupWallet().
   then(wallet => {
     // Wallet setup looks good
     // We can make it available in the browser context
-    window["ethereum"] = wallet;
-    console.info('Mock wallet set as window.ethereum in browser context')
+    Object.defineProperty(window, 'ethereum', {
+      get: () => {
+        const trace = getStackTrace()
+        console.debug("window.ethereum getter returns: ", { wallet, trace });
+        return wallet
+      },
+    })
+    // window["ethereum"] = wallet;
+    console.debug('Mock wallet set as window.ethereum in browser context') // , { wallet })
   }).catch (e =>
     console.error('Error while creating mock wallet.', e, e.stack)
   )

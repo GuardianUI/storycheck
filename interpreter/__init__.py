@@ -15,11 +15,13 @@ async def log_browser_console_message(msg):
             if browser_level == 'LOG':
                 browser_level = 'DEBUG'
             level = logger.level(browser_level).name
-        logger.log(
-            level, '[Browser console ({level})]: {s}', level=level, s=values)
+        logger.opt(colors=True).log(
+            level, '<bg #70A599>[Browser(Chrome) ({level})]</bg #70A599>: {s}',
+            level=level,
+            s=values)
     except Exception as e:
         logger.warning(
-            'Error while parsing browser console messages: message {m}', m=e.message)
+            'Error while parsing browser console messages: message {m}', m=e)
 
 
 class StoryInterpreter:

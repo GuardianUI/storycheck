@@ -82,8 +82,9 @@ class LocalChain:
                 level = 'DEBUG'
             while not stream.at_eof():
                 line = await stream.readline()
-                logger.log(level, '[Anvil console ({pref})]: {l}',
-                           pref=prefix, l=line.decode())
+                logger.opt(colors=True).log(level,
+                                            '<bg #8E866B>[EVM(Anvil) ({pref})]</bg #8E866B>: {l}',
+                                            pref=prefix, l=line.decode())
 
         async def background_tasks():
             await asyncio.gather(

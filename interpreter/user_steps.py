@@ -49,6 +49,10 @@ class UserStepInterpreter(StepInterpreter):
         logger.debug("Page done rendering.")
         await self.save_screenshot()
 
+        # check status of mock wallet
+        mwallet = await page.evaluate("() => window.ethereum")
+        # logger.debug("window.ethereum: {mw}", mw=mwallet)
+
 
 class BrowseStep(UserStepInterpreter):
 
@@ -65,7 +69,7 @@ class BrowseStep(UserStepInterpreter):
         logger.debug('prompt: {prompt},\n link: {link}',
                      prompt=prompt, link=link)
         await page.goto(link)
-        await page.wait_for_load_state("networkidle")
+        await page.wait_for_load_state()
 
 
 class ClickStep(UserStepInterpreter):

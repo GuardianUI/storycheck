@@ -14,14 +14,26 @@ export class MockWallet extends Eip1193Bridge {
   constructor(signer, provider) {
     super(signer, provider);
     this._isConnected = true
+    // this.signer.getAddress().then(address => {
+    //   console.debug("MockWallet constructor - this.signer.getAddress: ", address)
+    // })
     console.info("MockWallet created") // , { signer, provider });
   }
 
+  _isMM = true
+
   // Match Metamask interface
-  isMetaMask = true;
+  get isMetaMask() {
+    console.debug("MockWallet.isMetaMask: ", {isMM});
+    return isMM
+  }
+
+  // isMetaMask = true
+
   _metamask = new MockInternalMetaMask();
 
   isConnected() {
+    console.debug("MockWallet.isConnected: ", this._isConnected);
     return this._isConnected
   }
 

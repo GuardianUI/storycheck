@@ -5,7 +5,7 @@ from aiohttp import ClientSession
 import base64
 from io import BytesIO
 
-RefExpGPT_URL = "http://ec2-54-144-176-243.compute-1.amazonaws.com:7860/run/predict"
+RefExpGPT_URL = "http://54.144.176.243:7860/run/predict"
 
 
 class RemoteRefExp(RefExp):
