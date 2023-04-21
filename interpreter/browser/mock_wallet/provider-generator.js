@@ -20,7 +20,7 @@ async function setupWallet() {
     const ANVIL_URL = "http://127.0.0.1:8545";
 
     // link to local foundry anvil fork of mainnet
-    const rpcProvider = new JsonRpcProvider(ANVIL_URL) // , {chainId: 5});
+    const rpcProvider = await new JsonRpcProvider(ANVIL_URL) // , {chainId: 5});
     console.debug('JsonRpcProvider waiting to become ready')
     const isRpcReady = await rpcProvider.ready
     console.info('JsonRpcProvider ready: ', { isRpcReady })
@@ -30,14 +30,14 @@ async function setupWallet() {
 
     const pkey = '__MOCK__PRIVATE_KEY'
     console.debug('mock wallet private key: ', { pkey })
-    const signer = new Wallet(pkey, rpcProvider);
+    const signer = await new Wallet(pkey, rpcProvider);
     console.info('Created mock user wallet with address: ', signer.address)
     console.debug("Signer connected to Provider so it can use it for blockchain methods such as signer.getBalance().");
 
     // emulate metamask wallet that does not require user UI interactions to confirm transactions
     // The focus is mainly on testing dapp's interaction with a live blockchain.
     // No emphasis on testing wallet UI until there is better support by wallet providers of automated testing.
-    wallet = new MockWallet(signer, rpcProvider);
+    wallet = await new MockWallet(signer, rpcProvider);
 
     // set the provider to use the mock signer
     // rpcProvider.getSigner = () => signer
@@ -81,12 +81,21 @@ const wallet = setupWallet().
   then(wallet => {
     // Wallet setup looks good
     // We can make it available in the browser context
-    Object.defineProperty(window, 'ethereum', {
-      get: () => {
-        const trace = getStackTrace()
-        console.debug("window.ethereum getter returns: ", { wallet, trace });
-        return wallet
+    Object.defineProperties(window, {
+      'ethereum': {
+        get: () => {
+          const trace = getStackTrace()
+          console.debug("window.ethereum getter returns: ", { wallet, trace });
+          return wallet
+        },
       },
+      'name': {
+        get: () => {
+          const name = 'GuardianUI Test Wallet'
+          console.debug("window.name getter returns: ", { name });
+          return name
+        }
+      }
     })
     // window["ethereum"] = wallet;
     console.debug('Mock wallet set as window.ethereum in browser context') // , { wallet })

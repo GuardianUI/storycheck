@@ -45,13 +45,13 @@ class UserStepInterpreter(StepInterpreter):
         # logger.debug("Page domcontentloaded event received.")
         # await page.wait_for_load_state("load")
         # logger.debug("Page load state event received.")
-        await page.wait_for_timeout(5000)
+        await page.wait_for_timeout(2000)
         logger.debug("Page done rendering.")
         await self.save_screenshot()
 
         # check status of mock wallet
         mwallet = await page.evaluate("() => window.ethereum")
-        # logger.debug("window.ethereum: {mw}", mw=mwallet)
+        logger.debug("window.ethereum: {mw}", mw=mwallet)
 
 
 class BrowseStep(UserStepInterpreter):
