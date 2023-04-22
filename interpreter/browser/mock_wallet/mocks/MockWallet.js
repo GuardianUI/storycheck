@@ -3,49 +3,30 @@ import { Signer } from "ethers";
 import { Eip1193Bridge } from "@ethersproject/experimental";
 class MockInternalMetaMask {
   isUnlocked() {
-    console.debug("MockInternalMetaMask.isUnlocked");
+    console.warn("MockInternalMetaMask.isUnlocked", { signer, provider });
     return true;
   }
 }
 
 export class MockWallet extends Eip1193Bridge {
-  _isConnected = false
-
   constructor(signer, provider) {
     super(signer, provider);
-    this._isConnected = true
-    // this.signer.getAddress().then(address => {
-    //   console.debug("MockWallet constructor - this.signer.getAddress: ", address)
-    // })
-    console.info("MockWallet created") // , { signer, provider });
+    console.debug("MockWallet constructor called") // , { signer, provider });
   }
 
+  // Match Metamask interface
   _isMM = true
 
   // Match Metamask interface
   get isMetaMask() {
-    console.debug("MockWallet.isMetaMask: ", {isMM});
-    return isMM
+    console.debug("MockWallet.isMetaMask: ", this._isMM);
+    return this._isMM
   }
-
-  // isMetaMask = true
 
   _metamask = new MockInternalMetaMask();
 
-  isConnected() {
-    console.debug("MockWallet.isConnected: ", this._isConnected);
-    return this._isConnected
-  }
 
-  async request(...args) {
-    console.debug("MockWallet.request", { args });
-    return await this.send(...args);
-  }
 
-  async sendAsync(...args) {
-    console.debug("MockWallet.sendAsync", { args });
-    return await this.send(...args);
-  }
 
   async send(method, params) {
     console.debug("MockWallet.send START", { method, params });

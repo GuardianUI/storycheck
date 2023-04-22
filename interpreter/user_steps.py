@@ -50,8 +50,8 @@ class UserStepInterpreter(StepInterpreter):
         await self.save_screenshot()
 
         # check status of mock wallet
-        mwallet = await page.evaluate("() => window.ethereum")
-        logger.debug("window.ethereum: {mw}", mw=mwallet)
+        # mwallet = await page.evaluate("() => window.ethereum")
+        # logger.debug("window.ethereum: {mw}", mw=mwallet)
 
 
 class BrowseStep(UserStepInterpreter):

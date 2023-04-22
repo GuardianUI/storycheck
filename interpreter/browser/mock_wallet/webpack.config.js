@@ -28,5 +28,8 @@ module.exports = {
     errorDetails: true,
     warnings: true,
     publicPath: true
+  },
+  experiments: {
+    topLevelAwait: true
   }
 };
