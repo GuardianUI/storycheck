@@ -3,8 +3,8 @@
 ## Prerequisites
 
 - Chain
-  - Id 5
-  - Block 8856964
+  - Id 42161
+  <!-- - Block 8856964 -->
 
 ## User Steps
 
