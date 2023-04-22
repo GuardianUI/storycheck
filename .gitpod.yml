@@ -6,7 +6,7 @@ tasks:
       # install python app dependencies
       pip3 install -r requirements.txt
       # build mock wallet
-      cd browser/mock_wallet
+      cd interpreter/browser/mock_wallet
       yarn install --non-interactive
       yarn bundle
       cd -
