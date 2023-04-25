@@ -25,13 +25,17 @@
 1. Type test@email.com
 1. Scroll down
 1. Click on Continue button
-1. Click on Continue button right of Back button
+1. Click on Continue button at the top
 1. Scroll up
 1. Click on the checkbox left of Agree
 1. Scroll down
 1. Click on Continue button
 1. Scroll up
 1. Click on Deploy Now button
+1. Press Tab
+1. Press Tab
+1. Press Enter
+1. Press Home
 
 ## Expected Results
 

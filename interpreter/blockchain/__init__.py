@@ -36,6 +36,8 @@ class LocalChain:
                       "--host", self.ANVIL_HOST,
                       "--port", self.ANVIL_PORT,
                       "--config-out", "results/anvil-out.json",
+                      "--gas-price", "0",
+                      "--base-fee", "0"
                       #   "--no-cors"
                       ]
         if self.block_n is not None:
@@ -58,7 +60,7 @@ class LocalChain:
         logger.debug(
             'Started anvil with process ID: {process}', process=self.anvil_proc.pid)
         # read a line of output from the anvil process
-        anvil_output = await self.anvil_proc.stdout.readuntil(separator=b'Listening on')
+        anvil_output = await self.anvil_proc.stdout.readuntil(separator=b'Listening')
         logger.debug('[Anvil stdout]: {l}', l=anvil_output.decode())
         # wait for anvil RPC endpoint to become available
         anvil_url = f"http://{self.ANVIL_HOST}:{self.ANVIL_PORT}"
