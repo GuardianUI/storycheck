@@ -52,7 +52,6 @@ class StoryInterpreter:
                 await user_steps.run()
                 # run expected results section
                 async with ExpectedResults(
-                        user_agent=self.user_agent,
                         prompts=self.user_story.expected_results) as expected_results:
                     await expected_results.run()
                     errors = expected_results.errors()

@@ -108,9 +108,11 @@ class ExpectedResults(StorySection):
         Classifies a natural language prompt in md-AST format as one of multiple predefined options.
         """
         assert prompt is not None
+        logger.debug('Classifying prompt:\n {prompt}', prompt=pf(prompt))
         text = get_prompt_text(prompt)
         text = text.lower().strip()
-        if re.match(r'match snapshot\b', text):
+        logger.debug('Prompt text: {text}', text=text)
+        if re.search(r'match snapshot\b', text):
             return self.CheckLabels.SNAPSHOT
 
     def get_interpreter_by_class(self, prompt_class=None) -> StepInterpreter:

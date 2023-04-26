@@ -40,7 +40,7 @@ async def main():
         inp.change(lambda text: text, inp, md_preview)
         btn = gr.Button(value="Run", variant="primary")
         out = [gr.Checkbox(
-            label="Passed", info="Did this user story check out?"), gr.Markdown()]
+            label="Passed", info="User story checks out?"), gr.Markdown()]
         btn.click(story_check, inputs=inp, outputs=out)
     try:
         demo.launch(server_name="0.0.0.0")

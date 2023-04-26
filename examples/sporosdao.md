@@ -9,7 +9,7 @@
 ## User Steps
 
 1. Browse to https://app.sporosdao.xyz/
-1. Click on Create a new company button
+<!-- 1. Click on Create a new company button
 1. Click on Go! right arrow button left of Available
 1. Select On-chain name text field
 1. Type Test DAO
@@ -34,7 +34,7 @@
 1. Press Tab
 1. Press Tab
 1. Press Enter
-1. Press Home
+1. Press Home -->
 
 ## Expected Results
 
