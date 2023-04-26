@@ -4,8 +4,7 @@
 
 - Chain
   - Id 5
-    <!-- - Id 42161 -->
-    <!-- - Block 8856964 -->
+  - Block 8856964
 
 ## User Steps
 
@@ -39,4 +38,4 @@
 
 ## Expected Results
 
-- Wallet transactions match snapshot -->
+- Wallet transactions match snapshot

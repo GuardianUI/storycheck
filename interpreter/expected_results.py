@@ -2,6 +2,11 @@ from .section import StorySection
 from .step import StepInterpreter, NotImplementedInterpreter
 
 
+# check if snapshot saved
+# if snapshot saved, compare to snapshot from current run
+# else save current snapshot alongside story for future comparison
+# os.environ.get("GUARDIANUI_STORY_PATH")
+
 class ExpectedResults(StorySection):
 
     class StepInterpreter(StepInterpreter):

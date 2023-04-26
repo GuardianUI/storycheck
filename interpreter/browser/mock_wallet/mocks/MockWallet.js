@@ -10,6 +10,7 @@ class MockInternalMetaMask {
 export class MockWallet extends Eip1193Bridge {
   constructor(signer, provider) {
     super(signer, provider);
+    this._
     console.debug("MockWallet constructor called") // , { signer, provider });
   }
 
@@ -29,6 +30,7 @@ export class MockWallet extends Eip1193Bridge {
 
   async send(method, params) {
     console.debug("MockWallet.send START", { method, params });
+    let writeTx, writeTxException, writeTxResult = undefined
     try {
       // handle backwards compatibility with deprecated methods
       if (method == 'eth_requestAccounts') {
@@ -47,6 +49,7 @@ export class MockWallet extends Eip1193Bridge {
       // This have taken the code from the super method for sendTransaction and altered
       // it slightly to make it work with the gas limit issues.
       if (params && params.length && params[0].from && method === 'eth_sendTransaction') {
+        writeTx = {method, params}
         // Hexlify will not take gas, must be gasLimit, set this property to be gasLimit
         params[0].gasLimit = params[0].gas
         delete params[0].gas
@@ -59,17 +62,25 @@ export class MockWallet extends Eip1193Bridge {
         delete req.gas
         // Send the transaction
         const tx = await this.signer.sendTransaction(req)
-        result = tx.hash
+        // result = tx.hash
+        result = tx
       } else {
         // All other transactions the base class works for
         result = await super.send(method, params)
       }
       console.debug("MockWallet.send RETURNS result", { method, params, result });
+      writeTxResult = result
       return result
     } catch (e) {
+      writeTxException = e
       console.error("MockWallet.send THROWS error", { method, params, e }, e.stack);
       throw e
     } finally {
+      // log write tx in StoryCheck snapshot
+      if (writeTx) {
+        console.debug("MockWallet.send logging write tx");
+        __guardianui__logTx({ writeTx, writeTxException, writeTxResult })
+      }
       console.debug("MockWallet.send END!", { method, params });
     }
   }

@@ -1,7 +1,7 @@
 import gradio as gr
 from loguru import logger
 import asyncio
-
+import os
 from dotenv import load_dotenv
 from markdown import StoryParser, UserStory
 from interpreter import StoryInterpreter
@@ -27,7 +27,9 @@ async def main():
     logger.add(RESULTS_DIR / 'storycheck.log', rotation="2 MB")
     load_dotenv()
     title = "StoryCheck Playground by GuardianUI"
-    with open('examples/sporosdao.md', 'r') as file:
+    story_path = 'examples/sporosdao.md'
+    os.environ["GUARDIANUI_STORY_PATH"] = story_path
+    with open(story_path, 'r') as file:
         initial_story = file.read()
     with gr.Blocks(title=title) as demo:
         with gr.Tab("Edit"):

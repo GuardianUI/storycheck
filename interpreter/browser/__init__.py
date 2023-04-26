@@ -2,6 +2,7 @@ from playwright.async_api import async_playwright
 from loguru import logger
 from pathlib import Path
 from eth_account import Account
+import json
 
 
 def generate_private_key():
@@ -47,10 +48,20 @@ class UserAgent:
         fname = here / "mock_wallet/provider/provider.js"
         with open(Path(fname), "r") as file:
             init_script = file.read().replace(
-                "'__MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
+                "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
 
-        # TODO: find a way to pass prerequisites to js init script
+        # Pass story prerequisites to mock wallet via js init script
         await self.browser_context.add_init_script(init_script)
+
+        self.wallet_tx_snapshot = []
+
+        def log_wallet_tx(tx):
+            logger.debug("Logging write tx to story snapshot:\n {wtx}", wtx=tx)
+            self.wallet_tx_snapshot.append(tx)
+
+        # Capture all wallet write transactions in a story scoped snapshot
+        await self.browser_context.expose_function("__guardianui__logTx", log_wallet_tx)
+
         await self.browser_context.tracing.start(
             name='storycheck-trace',
             screenshots=True,
@@ -71,6 +82,9 @@ class UserAgent:
                          t=exception_type,
                          v=exception_value,
                          tb=exception_traceback)
+        with open("results/tx_log_snapshot.json", "w") as outfile:
+            json.dump(self.wallet_tx_snapshot, outfile)
+
         await self.browser_context.tracing.stop(path="results/trace.zip")
         await self.browser_context.close()
         await self.browser.close()

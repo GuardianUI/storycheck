@@ -26,7 +26,7 @@ try {
     console.info('JsonRpcProvider ready: ', { isRpcReady })
     // create a new burn wallet for each test
 
-    const pkey = '__MOCK__PRIVATE_KEY'
+    const pkey = '__GUARDIANUI_MOCK__PRIVATE_KEY'
     console.debug('mock wallet private key: ', { pkey })
     const signer = await new Wallet(pkey, rpcProvider);
     console.info('Created mock user wallet with address: ', signer.address)
@@ -38,28 +38,35 @@ try {
 
     window["ethereum"] = wallet;
 
-
     let balance = await wallet.send("eth_getBalance", [
       signer.address,
       "latest"
     ]);
     console.debug('User wallet balance is: ', { balance })
 
-    // Init wallet with story prerequisites
-    // default balance: 10,000 ETH (same as anvil defaults)
-    const ethAmount = "10000"
-    const newBalance = await ethers.utils.parseEther(ethAmount).toHexString()
-    console.debug('Setting new balance for user wallet', signer.address, newBalance)
-    await wallet.send("anvil_setBalance", [
-      signer.address,
-      // TODO: get actual initial balance from prerequisites section of story markdown
-      newBalance,
-    ])
-    balance = await wallet.send("eth_getBalance", [
-      signer.address,
-      "latest"
-    ]);
-    console.info('User wallet updated balance is: ', { balance })
+    const isInitialized = window.localStorage.getItem('__GUARDIANUI_MOCK__IS_INITIALIZED')
+    if (isInitialized) {
+      console.debug('User mock wallet already initialized.')
+    } else {
+      console.debug('Initializing user mock wallet...')
+      // Init wallet with story prerequisites
+      // default balance: 10,000 ETH (same as anvil defaults)
+      const ethAmount = "10000"
+      const newBalance = await ethers.utils.parseEther(ethAmount).toHexString()
+      console.debug('Setting new balance for user wallet', signer.address, newBalance)
+      await wallet.send("anvil_setBalance", [
+        signer.address,
+        // TODO: get actual initial balance from prerequisites section of story markdown
+        newBalance,
+      ])
+      balance = await wallet.send("eth_getBalance", [
+        signer.address,
+        "latest"
+      ]);
+      console.info('User wallet updated balance is: ', { balance })
+      console.debug('User mock wallet initialized.')
+      window.localStorage.setItem('__GUARDIANUI_MOCK__IS_INITIALIZED', true)
+    }
   } else {
     console.info('ETH mock user wallet already exist in this browser context. User account address: ', signer.address)
   }
