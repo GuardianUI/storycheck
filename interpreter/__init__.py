@@ -38,6 +38,8 @@ class StoryInterpreter:
         # init ai model
 
     async def run(self):
+        passed = True
+        errors = None
         async with Prerequisites(prompts=self.user_story.prerequisites) as reqs:
             await reqs.run()
             async with UserAgent() as user_agent:
@@ -48,23 +50,12 @@ class StoryInterpreter:
                 user_steps = UserSteps(user_agent=user_agent,
                                        prompts=self.user_story.user_steps)
                 await user_steps.run()
-                pass
-
-            # # run expected results section
-            # expected_results = ExpectedResults(
-            #     user_agent=self.user_agent, prompts=self.user_story.expected_results)
-            # await expected_results.run()
-            # page = self.user_agent.page
-            # # get mock wallet address
-            # address = await page.evaluate("() => window.ethereum.signer.address")
-            # logger.info(
-            #     'user mock wallet account address: {address}', address=address)
-            # # check mock wallet balance
-            # balance = await page.evaluate(
-            #     "(address) => window.ethereum.provider.send('eth_getBalance',[address, 'latest'])",
-            #     address)
-            # logger.info(
-            #     'user mock wallet account balance: {balance}', balance=balance)
-            # TODO: implement proper result object with success and error properties
-            result = 'Success'
-        return result
+                # run expected results section
+                async with ExpectedResults(
+                        user_agent=self.user_agent,
+                        prompts=self.user_story.expected_results) as expected_results:
+                    await expected_results.run()
+                    errors = expected_results.errors()
+                    if errors:
+                        passed = False
+        return passed, errors

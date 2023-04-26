@@ -18,9 +18,9 @@ async def story_check(story: str):
     story_interpreter = StoryInterpreter(
         user_story=user_story)
     logger.debug("Running Story Check...")
-    result = await story_interpreter.run()
+    passed, errors = await story_interpreter.run()
     logger.debug("Story Check Finished.")
-    return result
+    return passed, errors
 
 
 async def main():
@@ -39,7 +39,8 @@ async def main():
             md_preview = gr.Markdown(value=inp.value)
         inp.change(lambda text: text, inp, md_preview)
         btn = gr.Button(value="Run", variant="primary")
-        out = gr.Markdown()
+        out = [gr.Checkbox(
+            label="Passed", info="Did this user story check out?"), gr.Markdown()]
         btn.click(story_check, inputs=inp, outputs=out)
     try:
         demo.launch(server_name="0.0.0.0")
