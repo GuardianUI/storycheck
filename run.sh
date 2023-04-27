@@ -8,7 +8,12 @@ rm -rf results/
 
 rm storycheck.log
 
-# clear
+clear
+
+# build mock wallet
+cd interpreter/browser/mock_wallet/
+yarn build
+cd -
 
 # start app
 python3 app.py

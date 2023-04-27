@@ -13,7 +13,8 @@
     "webpack-cli": "^4.10.0"
   },
   "scripts": {
-    "bundle": "npx webpack --config webpack.config.js"
+    "bundle": "npx webpack --config webpack.config.js",
+    "build": "yarn bundle"
   },
   "dependencies": {
     "@ethersproject/experimental": "^5.7.0",

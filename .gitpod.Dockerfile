@@ -14,3 +14,6 @@ RUN pip3 install playwright\
 
 ### Foundry
 RUN curl -L https://foundry.paradigm.xyz | bash
+
+
+### End of file

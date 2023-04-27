@@ -1,17 +1,11 @@
 from .section import StorySection
-from .step import StepInterpreter
-from .ai import RefExp
+from .step import StepInterpreter, get_prompt_text
+from .ai.remote_refexp import RemoteRefExp
 from enum import Enum, auto
 import re
 import time
 from loguru import logger
 from PIL import Image
-
-
-def get_prompt_text(ast_prompt: list) -> str:
-    for c in ast_prompt[0]['children']:
-        if c['type'] == 'text':
-            return c['text']
 
 
 class UserStepInterpreter(StepInterpreter):
@@ -26,34 +20,79 @@ class UserStepInterpreter(StepInterpreter):
         path = f'results/{time.monotonic_ns()}_{self.__class__.__name__}.png'
         await self.user_agent.page.screenshot(path=path,
                                               animations='disabled',
-                                              caret='initial',
-                                              full_page=True)
+                                              caret='initial')
         self.user_agent.session['saved_screenshot_path'] = path
-        # logger.debug(
-        #     'self.user_agent.session: {session}', session=self.user_agent.session)
-
-
-class BrowseInterpreter(UserStepInterpreter):
+        logger.debug(
+            'self.user_agent.session: {session}', session=self.user_agent.session)
 
     async def interpret_prompt(self, prompt):
+        """
+        Interpret in computer code the intention of the natural language input prompt.
+
+        Parameters:
+          prompt(str): natural language prompt
+        """
+        assert prompt is not None
+        text = get_prompt_text(prompt)
+        logger.debug(
+            'Interpreting prompt: {prompt}', prompt=text)
+        page = self.user_agent.page
+        # make sure that page dynamic components are done rendering between steps
+        # logger.debug("Page rendering...")
+        # await page.wait_for_load_state("networkidle")
+        # logger.debug("Page networkidle event received.")
+        # await page.wait_for_load_state("domcontentloaded")
+        # logger.debug("Page domcontentloaded event received.")
+        # await page.wait_for_load_state("load")
+        # logger.debug("Page load state event received.")
+        await page.wait_for_timeout(2000)
+        logger.debug("Page done rendering.")
+        await self.save_screenshot()
+
+        # check status of mock wallet
+        mwallet = await page.evaluate("() => window.ethereum")
+        logger.debug("window.ethereum: {mw}", mw=(mwallet is not None))
+        # check wallet balance at the beginning of step
+        wbalance = await page.evaluate(
+            """
+            async () => {
+                    const wallet = window.ethereum
+                    const signer = window.ethereum?.signer
+                    let balance = -1
+                    if (wallet && signer) {
+                        balance = await wallet.send(
+                            'eth_getBalance',
+                            [signer.address, 'latest']
+                        )
+                    }
+                    return balance
+                }
+            """)
+        logger.debug("user wallet balance: {b}", b=wbalance)
+
+
+class BrowseStep(UserStepInterpreter):
+
+    async def interpret_prompt(self, prompt):
+        await super().interpret_prompt(prompt)
 
         def get_prompt_link(ast_prompt: list) -> str:
             for c in ast_prompt[0]['children']:
                 if c['type'] == 'link':
                     return c['link']
-
+        logger.debug('self.user_agent: {ua}', ua=self.user_agent)
         page = self.user_agent.page
         link = get_prompt_link(prompt)
         logger.debug('prompt: {prompt},\n link: {link}',
                      prompt=prompt, link=link)
         await page.goto(link)
-        await self.save_screenshot()
+        await page.wait_for_load_state()
 
 
-class ClickInterpreter(UserStepInterpreter):
+class ClickStep(UserStepInterpreter):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.refexp = RefExp()
+        self.refexp = RemoteRefExp()
 
     def xyxy(self, point=None, page=None):
         assert point is not None
@@ -67,19 +106,14 @@ class ClickInterpreter(UserStepInterpreter):
         return cpTranslated
 
     async def interpret_prompt(self, prompt=None):
-        assert prompt is not None
-        """
-        Interpret in computer code the intention of the natural language input prompt.
+        await super().interpret_prompt(prompt)
 
-        Parameters:
-          prompt(str): natural language prompt
-        """
+        # save a screenshot and send it to the refexp model
         page = self.user_agent.page
         path = self.saved_screenshot_path
-        logger.debug('self.saved_screenshot_path: {path}', path=path)
         text = get_prompt_text(prompt)
         with Image.open(path) as image:
-            annotated_image, center_point = self.refexp.process_refexp(
+            annotated_image, center_point = await self.refexp.process_refexp(
                 image=image, prompt=text)
             annotated_image.save(
                 f'{path}_click_annotated.png')
@@ -90,24 +124,28 @@ class ClickInterpreter(UserStepInterpreter):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await self.save_screenshot()
+        # await page.wait_for_load_state("networkidle")
+        # # wait up to 2 seconds for the page to update as a result of click()
+        # await page.wait_for_timeout(2000)
 
 
-class KBInputInterpreter(UserStepInterpreter):
+class KBInputStep(UserStepInterpreter):
     async def interpret_prompt(self, prompt):
+        await super().interpret_prompt(prompt)
+
         page = self.user_agent.page
         text = get_prompt_text(prompt)
         _, value = text.split(' ', 1)
-        await page.keyboard.type(value)
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await self.save_screenshot()
+        # add delay to type slower, like a user
+        await page.keyboard.type(value, delay=100)
+        # no need for explicit snapshot save when tracing is on
+        # await self.save_screenshot()
 
 
-class ScrollInterpreter(UserStepInterpreter):
+class ScrollStep(UserStepInterpreter):
     async def interpret_prompt(self, prompt):
+        await super().interpret_prompt(prompt)
+
         page = self.user_agent.page
         text = get_prompt_text(prompt)
         _, direction = text.split(' ', 1)
@@ -118,14 +156,23 @@ class ScrollInterpreter(UserStepInterpreter):
             await page.keyboard.press("PageDown")
         else:
             logger.warning('scroll {dir} not implemented', dir=direction)
-        # wait up to 2 seconds for the page to update as a result of click()
-        await page.wait_for_timeout(2000)
-        await self.save_screenshot()
+        # await page.wait_for_timeout(2000)
+
+
+class KeyPressStep(UserStepInterpreter):
+    async def interpret_prompt(self, prompt):
+        await super().interpret_prompt(prompt)
+
+        page = self.user_agent.page
+        text = get_prompt_text(prompt)
+        _, key = text.split(' ', 1)
+        await page.keyboard.press(key)
+        # await page.wait_for_timeout(2000)
 
 
 class UserSteps(StorySection):
 
-    class ClassLabels(Enum):
+    class StepLabels(Enum):
         CLICK = auto()
         BROWSE = auto()
         SCROLL = auto()
@@ -134,13 +181,16 @@ class UserSteps(StorySection):
         REVIEW = auto()
 
     def __init__(self, user_agent=None, **kwargs):
-        super().__init__(user_agent=user_agent, **kwargs)
+        super().__init__(**kwargs)
+        assert user_agent is not None
+        logger.debug('user_agent: {ua}', ua=user_agent)
         self.interpreters = {
-            self.ClassLabels.CLICK: ClickInterpreter(user_agent=self.user_agent),
-            self.ClassLabels.BROWSE: BrowseInterpreter(user_agent=self.user_agent),
-            self.ClassLabels.KB_INPUT: KBInputInterpreter(user_agent=self.user_agent),
-            self.ClassLabels.SCROLL: ScrollInterpreter(
-                user_agent=self.user_agent)
+            self.StepLabels.CLICK: ClickStep(user_agent=user_agent),
+            self.StepLabels.BROWSE: BrowseStep(user_agent=user_agent),
+            self.StepLabels.KB_INPUT: KBInputStep(user_agent=user_agent),
+            self.StepLabels.SCROLL: ScrollStep(
+                user_agent=user_agent),
+            self.StepLabels.KEYPRESS: KeyPressStep(user_agent=user_agent)
         }
 
     def classify_prompt(self, prompt: list = None):
@@ -151,20 +201,22 @@ class UserSteps(StorySection):
         text = get_prompt_text(prompt)
         text = text.lower().strip()
         if text.startswith('scroll'):
-            return self.ClassLabels.SCROLL
+            return self.StepLabels.SCROLL
         elif text.startswith('press'):
-            return self.ClassLabels.KEYPRESS
+            return self.StepLabels.KEYPRESS
         elif text.startswith('review'):
-            return self.ClassLabels.REVIEW
+            return self.StepLabels.REVIEW
         elif re.match(r'type\b|input\b|enter\b', text):
-            return self.ClassLabels.KB_INPUT
+            return self.StepLabels.KB_INPUT
         elif re.match(r'click\b|select\b|tap\b', text):
-            return self.ClassLabels.CLICK
+            return self.StepLabels.CLICK
         elif re.match(r'browse\b', text):
-            return self.ClassLabels.BROWSE
+            return self.StepLabels.BROWSE
+        else:  # default to click
+            return self.StepLabels.CLICK
 
     def get_interpreter_by_class(self, prompt_class=None) -> StepInterpreter:
         """
-        Look for the interpreter of a specific prompt class.
+        Look for the interpreter of a specific prompt class .
         """
         return self.interpreters[prompt_class]

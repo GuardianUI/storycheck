@@ -1,44 +1,39 @@
 import gradio as gr
 from loguru import logger
 import asyncio
-from blockchain import LocalChain
-from browser import UserAgent
-
+import os
 from dotenv import load_dotenv
 from markdown import StoryParser, UserStory
 from interpreter import StoryInterpreter
+from pathlib import Path
+import json
+
+RESULTS_DIR = Path('./results')
 
 
 async def story_check(story: str):
     logger.debug("Story Check starting for user story:\n {story}", story=story)
-    try:
-        # start local blockchain fork
-        chain = LocalChain()
-        await chain.start()
-        user_agent = UserAgent()
-        await user_agent.start()
-        # init md parser
-        parser = StoryParser()
-        user_story: UserStory = parser.parse(story)
-        story_interpreter = StoryInterpreter(
-            user_story=user_story, user_agent=user_agent)
-        logger.debug("Running Story Check...")
-        result = await story_interpreter.run()
-    except Exception as e:
-        logger.exception("Story Check Error: {e}", e=e)
-        result = 'Error'
-    finally:
-        await user_agent.stop()
-        await chain.stop()
-        logger.debug("Story Check Finished.")
-    return result
+    # init md parser
+    parser = StoryParser()
+    user_story: UserStory = parser.parse(story)
+    story_interpreter = StoryInterpreter(
+        user_story=user_story)
+    logger.debug("Running Story Check...")
+    passed, errors = await story_interpreter.run()
+    logger.debug(
+        "Story Check Results: passed: {p}, errors: {e}", p=passed, e=errors)
+    json_errors = json.dumps(errors)
+    logger.debug("Story Check Finished.")
+    return passed, json_errors
 
 
 async def main():
-    logger.add("storycheck.log", rotation="2 MB", enqueue=True)
+    logger.add(RESULTS_DIR / 'storycheck.log', rotation="2 MB")
     load_dotenv()
     title = "StoryCheck Playground by GuardianUI"
-    with open('examples/sporosdao.md', 'r') as file:
+    story_path = 'examples/sporosdao.md'
+    os.environ["GUARDIANUI_STORY_PATH"] = story_path
+    with open(story_path, 'r') as file:
         initial_story = file.read()
     with gr.Blocks(title=title) as demo:
         with gr.Tab("Edit"):
@@ -48,7 +43,8 @@ async def main():
             md_preview = gr.Markdown(value=inp.value)
         inp.change(lambda text: text, inp, md_preview)
         btn = gr.Button(value="Run", variant="primary")
-        out = gr.Markdown()
+        out = [gr.Checkbox(
+            label="Passed", info="User story checks out?"), gr.Markdown()]
         btn.click(story_check, inputs=inp, outputs=out)
     try:
         demo.launch(server_name="0.0.0.0")

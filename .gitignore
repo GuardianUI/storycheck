@@ -5,3 +5,6 @@
 results/
 
 **/*.log
+
+ens-app/
+node_modules/

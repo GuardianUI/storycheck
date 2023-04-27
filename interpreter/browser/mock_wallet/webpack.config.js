@@ -10,7 +10,9 @@ module.exports = {
   plugins: [
     new Dotenv()
   ],
-  // mode: 'development',
+  mode: 'development',
+  devtool: 'inline-source-map', // use in dev mode
+  // devtool: "source-map", // use in production
   stats: {
     hash: true,
     colors: true,
@@ -20,11 +22,14 @@ module.exports = {
     chunks: true,
     modules: true,
     reasons: true,
-    children: false,
+    children: true,
     source: true,
     errors: true,
     errorDetails: true,
     warnings: true,
     publicPath: true
+  },
+  experiments: {
+    topLevelAwait: true
   }
 };
