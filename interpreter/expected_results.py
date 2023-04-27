@@ -74,6 +74,7 @@ def tx_matches(txsaved, txnew):
                            n=nr
                            )
             return False
+    return True
 
 
 def compare_snapshots(saved=None, new=None):
@@ -88,6 +89,8 @@ def compare_snapshots(saved=None, new=None):
     if len(saved_json) == len(new_json):
         mismatched = [(txsaved, txnew) for txsaved, txnew in zip(
             saved_json, new_json) if not tx_matches(txsaved, txnew)]
+        logger.warning('Mismatched transactions: {m}', m=mismatched
+                       )
     else:
         mismatched = True
     if mismatched:
