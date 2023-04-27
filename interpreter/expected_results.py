@@ -29,8 +29,8 @@ def tx_matches(txsaved, txnew):
     jnwrite = json.dumps(txnew["writeTx"])
     if jswrite != jnwrite:
         logger.warning("""Transaction call signatures do not match:
-                        txsaved: {s}
-                        txnew: {n}
+                        Saved tx sig: {s}
+                        New tx sig: {n}
                         """,
                        s=jswrite,
                        n=jnwrite
@@ -44,8 +44,8 @@ def tx_matches(txsaved, txnew):
         jne = json.dumps(ne)
         if jse != jne:
             logger.warning("""Transaction exception signature must match snapshot:
-                            txsaved: {s}
-                            txnew: {n}
+                            Saved tx exception: {s}
+                            New tx exception: {n}
                             """,
                            s=jse,
                            n=jne
@@ -56,10 +56,24 @@ def tx_matches(txsaved, txnew):
     nr = txnew['writeTxResult']
     if sr is not None:
         if nr is None:
-            ...  # "Transaction result must match snapshot"
+            logger.warning("""Transaction result must match snapshot:
+                            Saved tx result: {s}
+                            New tx result: {n}
+                            """,
+                           s=sr,
+                           n=nr
+                           )
+            return False
     else:
         if nr is not None:
-            ...  # "Transaction result must match snapshot"
+            logger.warning("""Transaction result must match snapshot:
+                            Saved tx result: {s}
+                            New tx result: {n}
+                            """,
+                           s=sr,
+                           n=nr
+                           )
+            return False
 
 
 def compare_snapshots(saved=None, new=None):
@@ -71,18 +85,19 @@ def compare_snapshots(saved=None, new=None):
         new_json = json.load(f)
     logger.debug('Saved tx snapshot:\n {s}', s=saved_json)
     logger.debug('New tx snapshot:\n {n}', n=new_json)
-    match = False
-    errors = None
     if len(saved_json) == len(new_json):
-        match = [(txsaved, txnew) for txsaved, txnew in zip(
+        mismatched = [(txsaved, txnew) for txsaved, txnew in zip(
             saved_json, new_json) if not tx_matches(txsaved, txnew)]
-    if not match:
+    else:
+        mismatched = True
+    if mismatched:
         errors = {
             'saved_snapshot': saved_json,
             'new_snapshot': new_json
         }
         logger.warning('Snapshots do not match!')
     else:
+        errors = None
         logger.debug('Snapshots match.')
     return errors
 
