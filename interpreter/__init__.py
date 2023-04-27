@@ -51,10 +51,11 @@ class StoryInterpreter:
                                        prompts=self.user_story.user_steps)
                 await user_steps.run()
                 # run expected results section
-                async with ExpectedResults(
-                        prompts=self.user_story.expected_results) as expected_results:
-                    await expected_results.run()
-                    errors = expected_results.errors()
-                    if errors:
-                        passed = False
+        async with ExpectedResults(
+                prompts=self.user_story.expected_results) as expected_results:
+            await expected_results.run()
+            errors = expected_results.errors
+            logger.debug('expected result errors: {e}', e=errors)
+            if errors:
+                passed = False
         return passed, errors

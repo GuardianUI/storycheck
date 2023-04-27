@@ -20,39 +20,71 @@ class CheckStep(StepInterpreter):
         pass
 
 
-def tx_matches(tx1, tx2):
+def tx_matches(txsaved, txnew):
     """
     Compare two blockchain write transactions for matching signature and results.
     """
     # compare call sigs
-    j1 = json.dumps(tx1["writeTx"])
-    j2 = json.dumps(tx2["writeTx"])
-    return j1 == j2  # "Transaction call signature must match snapshot"
+    jswrite = json.dumps(txsaved["writeTx"])
+    jnwrite = json.dumps(txnew["writeTx"])
+    if jswrite != jnwrite:
+        logger.warning("""Transaction call signatures do not match:
+                        txsaved: {s}
+                        txnew: {n}
+                        """,
+                       s=jswrite,
+                       n=jnwrite
+                       )
+        return False
     # compare exception sigs
-    txe1 = tx1['writeTxException']
-    txe2 = tx2['writeTxException']
-    if txe1 is not None or txe2 is not None:
-        je1 = json.dumps(txe1)
-        je2 = json.dumps(txe2)
-        return je1 == je2  # "Transaction exception signature must match snapshot"
+    se = txsaved['writeTxException']
+    ne = txnew['writeTxException']
+    if se is not None or ne is not None:
+        jse = json.dumps(se)
+        jne = json.dumps(ne)
+        if jse != jne:
+            logger.warning("""Transaction exception signature must match snapshot:
+                            txsaved: {s}
+                            txnew: {n}
+                            """,
+                           s=jse,
+                           n=jne
+                           )
+            return False
     # compare result sigs
-    txr1 = tx1['writeTxResult']
-    txr2 = tx2['writeTxResult']
-    if txr1 is not None:
-        return txr2 is not None  # "Transaction result must match snapshot"
+    sr = txsaved['writeTxResult']
+    nr = txnew['writeTxResult']
+    if sr is not None:
+        if nr is None:
+            ...  # "Transaction result must match snapshot"
     else:
-        return txr2 is None  # "Transaction result must match snapshot"
+        if nr is not None:
+            ...  # "Transaction result must match snapshot"
 
 
 def compare_snapshots(saved=None, new=None):
     assert saved is not None
     assert new is not None
-    saved_json = json.load(saved)
-    new_json = json.load(new)
-    errors = ((txnew, txsaved) for txnew, txsaved in zip(
-        new_json, saved_json) if not tx_matches(txnew, txsaved))
-    assert errors is None, \
-        f'Wallet transactions must match snapshot. Mismatches found:\n {errors}'
+    with open(saved) as f:
+        saved_json = json.load(f)
+    with open(new) as f:
+        new_json = json.load(f)
+    logger.debug('Saved tx snapshot:\n {s}', s=saved_json)
+    logger.debug('New tx snapshot:\n {n}', n=new_json)
+    match = False
+    errors = None
+    if len(saved_json) == len(new_json):
+        match = [(txsaved, txnew) for txsaved, txnew in zip(
+            saved_json, new_json) if not tx_matches(txsaved, txnew)]
+    if not match:
+        errors = {
+            'saved_snapshot': saved_json,
+            'new_snapshot': new_json
+        }
+        logger.warning('Snapshots do not match!')
+    else:
+        logger.debug('Snapshots match.')
+    return errors
 
 
 class SnapshotCheck(CheckStep):
@@ -64,19 +96,15 @@ class SnapshotCheck(CheckStep):
         fpath = Path(story_path)
         saved_snapshot = fpath.with_suffix('.snapshot.json')
         new_snapshot = Path('results/tx_log_snapshot.json')
+        errors = None
         if saved_snapshot.exists():
             logger.debug('Found saved snapshot. Comparing transactions...')
-            compare_snapshots(saved=saved_snapshot, new=new_snapshot)
-            logger.debug(
-                'Wallet transactions in current run match saved snapshot.')
+            errors = compare_snapshots(saved=saved_snapshot, new=new_snapshot)
         else:
             logger.debug('No previous snapshot found. Saving snapshot.')
             shutil.copyfile(new_snapshot, saved_snapshot)
-
-            # if snapshot saved, compare to snapshot from current run
-            # else save current snapshot alongside story for future comparison
-            # os.environ.get("GUARDIANUI_STORY_PATH")
         logger.debug('snapshot check completed.')
+        return errors
 
     async def aexit(self):
         """

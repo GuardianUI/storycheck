@@ -7,6 +7,7 @@ class StorySection(ABC):
     def __init__(self, prompts: list = None):
         assert prompts is not None
         self.prompts = prompts
+        self._errors = []
 
     async def run(self):
         """
@@ -15,7 +16,16 @@ class StorySection(ABC):
         for p in self.prompts:
             prompt_class = self.classify_prompt(p)
             interpreter = self.get_interpreter_by_class(prompt_class)
-            await interpreter.interpret_prompt(p)
+            e = await interpreter.interpret_prompt(p)
+            if e:
+                self._errors.append({'prompt': p, 'errors': e})
+
+    @property
+    def errors(self) -> []:
+        """
+        Return errors gathered while interpreting steps
+        """
+        return self._errors
 
     @abstractmethod
     def classify_prompt(self, prompt: str = None):

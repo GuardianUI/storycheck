@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from markdown import StoryParser, UserStory
 from interpreter import StoryInterpreter
 from pathlib import Path
+import json
 
 RESULTS_DIR = Path('./results')
 
@@ -19,8 +20,11 @@ async def story_check(story: str):
         user_story=user_story)
     logger.debug("Running Story Check...")
     passed, errors = await story_interpreter.run()
+    logger.debug(
+        "Story Check Results: passed: {p}, errors: {e}", p=passed, e=errors)
+    json_errors = json.dumps(errors)
     logger.debug("Story Check Finished.")
-    return passed, errors
+    return passed, json_errors
 
 
 async def main():
