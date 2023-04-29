@@ -8,6 +8,10 @@ Uses [RefExp GPT](https://huggingface.co/spaces/GuardianUI/ui-refexp-click) to p
 
 Note: Storycheck is currently most reliable for testing the UI of smartphones and tablets.
 
+## Walkthrough Video
+
+[![StoryCheck Walkthrough Video](https://img.youtube.com/vi/gZ23iDqlfX4/0.jpg)](https://www.youtube.com/watch?v=gZ23iDqlfX4)
+
 ## Example User Story Input
 
 ```md
