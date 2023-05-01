@@ -16,4 +16,4 @@ yarn build
 cd -
 
 # start app
-python3 app.py
+python3 app.py "$@"

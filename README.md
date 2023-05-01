@@ -15,7 +15,6 @@ Note: Storycheck is currently most reliable for testing the UI of smartphones an
 ## Example User Story Input
 
 ```md
-
 # Creating a new DAO LLC on Arbitrum One via SporosDAO.xyz
 
 ## Prerequisites
@@ -55,13 +54,11 @@ Note: Storycheck is currently most reliable for testing the UI of smartphones an
 ## Expected Results
 
 - Wallet transactions match snapshot
-
-
 ```
 
 ## Prerequisites Section
 
-The prerequisites section normally includes `ChainId` and `Block` parameters, which allow the test to execute from a deterministic blockchain state, which respectively allows for predictable results.  
+The prerequisites section normally includes `ChainId` and `Block` parameters, which allow the test to execute from a deterministic blockchain state, which respectively allows for predictable results.
 
 ## User Story Section
 
@@ -69,8 +66,9 @@ The format of user steps in this section resembles the HOWTO documentation of a 
 
 ## Expected Results Section
 
-Expected Results section currently implements a default transaction snapshot check similar to [jest snapshot matching](https://jestjs.io/docs/snapshot-testing). 
+Expected Results section currently implements a default transaction snapshot check similar to [jest snapshot matching](https://jestjs.io/docs/snapshot-testing).
 The first time a test is run, all write transactions going through `window.ethereum` are recorded and saved. Subsequent runs must match these write transactions. If there is a mismatch, then one of three changes took place in the UI under test:
+
 - Developers changed the frontend code in a significant way. This warrants a careful code review and update of the user stories.
 - There is malicious injected code that changes the behavior of the app. A big **red alert** is in order! App infrastructure is compromised: hosting providers, third party libaries, or build tools.
 - There is a bug in some of the third party dependencies that affects UI behavior. Developer attention required to track down and fix the root cause.
@@ -97,7 +95,7 @@ flowchart TD
 │  ├──┬─ interpreter — "Runtime engine which takes AST as input and executes it."
 │  │  │
 │  ├──┼──┬─ browser — "Playwright browser driver."
-│  │  │  │ 
+│  │  │  │
 │  │  │  └─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context as Metamask."
 │  │  │
 │  │  ├─ ai — "RefExp GPT AI model that predicst UI element location based on natural language referring expressions."
@@ -114,6 +112,29 @@ This project is pre-configured to build and run via Gitpod.
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/GuardianUI/storycheck)
 
 To run locally or in another dev environment, copy the steps from [`.gitpod.yml`](.gitpod.yml)
+
+### Command line arguments
+
+StoryCheck can be run as a shell command or as a web service.
+
+```bash
+$>python3 app.py --help
+
+
+usage: StoryCheck by GuardianUI [-h] -i INPUT_FILE [-o OUTPUT_DIR] [--serve]
+
+Parses and executes user stories written in markdown format.
+
+options:
+  -h, --help            show this help message and exit
+  -i INPUT_FILE, --input-file INPUT_FILE
+                        path to the user story input markdown file (e.g. story.md)
+  -o OUTPUT_DIR, --output-dir OUTPUT_DIR
+                        directory where all results from the storycheck will be stored.
+  --serve               whether to start as a web service or run storycheck and exit.
+
+Copyright (c) guardianui.com 2023
+```
 
 ## Contributing
 
