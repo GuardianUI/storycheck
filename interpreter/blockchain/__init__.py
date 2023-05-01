@@ -25,7 +25,11 @@ class LocalChain:
         # Goerli testnet
         '5': 'https://eth-goerli.g.alchemy.com/v2/3HpUm27w8PfGlJzZa4jxnxSYs9vQN7FZ',
         # Arbitrum
-        '42161': 'https://arb-mainnet.g.alchemy.com/v2/Kjt13n8OuVVCBqxIGMGYuwgbnLzfh1U6'
+        '42161': 'https://arb-mainnet.g.alchemy.com/v2/Kjt13n8OuVVCBqxIGMGYuwgbnLzfh1U6',
+        # zkSync Era Mainnet
+        '324': 'https://mainnet.era.zksync.io',
+        # zkSync Era Testnet
+        '280': 'https://testnet.era.zksync.dev'
     }
 
     async def start(self):
