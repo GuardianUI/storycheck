@@ -103,10 +103,10 @@ The first time a test is run, all write transactions going through `window.ether
 flowchart TD
     A[User Story] -->|check| B(StoryCheck)
     B --> |parse| C[Markdown Parser]
-    B -->|play| D[Browser Driver (Playwright)]
+    B -->|play| D[Browser Driver / Playwright]
     D -->|locate UI element| E[AI Model]
-    D -->|sign tx| F[Mock Wallet (EIP1193Bridge)]
-    F -->|blokchain tx| G[Local EVM Fork (anvil)]
+    D -->|sign tx| F[Mock Wallet / EIP1193Bridge]
+    F -->|blokchain tx| G[Local EVM Fork / anvil]
 ```
 
 ## Directory structure
