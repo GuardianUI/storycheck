@@ -1,5 +1,5 @@
 from .section import StorySection
-from .step import StepInterpreter, get_prompt_text
+from .step import StepInterpreter, get_prompt_text, get_prompt_link
 from .ai.remote_refexp import RemoteRefExp
 from enum import Enum, auto
 import re
@@ -76,10 +76,6 @@ class BrowseStep(UserStepInterpreter):
     async def interpret_prompt(self, prompt):
         await super().interpret_prompt(prompt)
 
-        def get_prompt_link(ast_prompt: list) -> str:
-            for c in ast_prompt[0]['children']:
-                if c['type'] == 'link':
-                    return c['link']
         logger.debug('self.user_agent: {ua}', ua=self.user_agent)
         page = self.user_agent.page
         link = get_prompt_link(prompt)
