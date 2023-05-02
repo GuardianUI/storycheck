@@ -160,6 +160,11 @@ options:
 Copyright (c) guardianui.com 2023
 ```
 
+### Command line exit codes
+
+If all story checks / tests pass, the command will return with exit code `0`. Otherwise if any test fails or other errors occur, the exit code will be non-zero.
+This makes it possible to use storycheck in shell scripts or CI scripts.
+
 ## Contributing
 
 Thanks for your interest in contributing!
