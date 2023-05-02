@@ -60,6 +60,12 @@ Note: Storycheck is currently most reliable for testing the UI of smartphones an
 
 The prerequisites section sets conditions which allow the test to execute from a deterministic blockchain state, which respectively allows for predictable results. Currently supported prerequsite is `Chain` at the top level with `Id` as a required parameter, and optionally `Block` and `RPC`. These parameters are passed to `anvil` to create a local EVM fork for the test run.
 
+### Default Prerequisites
+
+By default each test starts with `10,000 ETH` in the mock user wallet (same as anvil default test accounts).
+
+In order to fund the mock wallet with other tokens (e.g. USDC, DAI, NFTs), the `User Steps` section of the story file should begin with prompts that initiate the funding via front end interactions (e.g. Uniswap flow for ETH/USDC swap).
+
 ### Example 1. Etheremum Mainnet test
 
 The following example sets up a local fork of ETH Mainnet starting from the latest block using a default RPC.
@@ -164,6 +170,28 @@ Copyright (c) guardianui.com 2023
 
 If all story checks / tests pass, the command will return with exit code `0`. Otherwise if any test fails or other errors occur, the exit code will be non-zero.
 This makes it possible to use storycheck in shell scripts or CI scripts.
+
+## Output Directory Artifacts
+
+The output directory of a test run is either specified via `--output-dir` command line argument
+or defaults to `./results`. It contains a number of helpful artifacts for debugging:
+
+```ml
+├─ ./results — "Main output directory for an input story file."
+│  │
+│  ├─ storycheck.log — "Consolidated log file between test runner, browser and EVM."
+│  │
+│  ├─ tx_log_snapshot.json — "Snapshot of all blockchain write transactions."
+│  │
+│  ├─ videos/ — "Video recordings of browser interactions."
+│  │
+│  ├─ screenshots/ — "Browser screenshot for every prompt in the User Steps section."
+│  │
+│  ├─ anvil-out.json — "Configuration for the anvil EVM fork."
+│  │
+│  ├─ trace.zip — "Session trace for Playwright Trace Viewer."
+│  │
+```
 
 ## Contributing
 

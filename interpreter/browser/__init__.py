@@ -3,6 +3,7 @@ from loguru import logger
 from pathlib import Path
 from eth_account import Account
 import json
+import os
 
 
 def generate_private_key():
@@ -20,6 +21,8 @@ class UserAgent:
     def __init__(self):
         # shared session object during a story check run
         self.session = dict()
+        results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
+        self.results_dir = Path(results_dir)
 
     async def __aenter__(self):
         """
@@ -30,13 +33,13 @@ class UserAgent:
         chromium = self.playwright.chromium
         pixel5 = self.playwright.devices["Pixel 5"]
         self.browser = await chromium.launch(
-            traces_dir="results/",
+            traces_dir=self.results_dir,
             slow_mo=200)  # slow down (ms) so devs can see what's going on
         # expose mock private key in browser context for wallet initialization
         mnemonic = generate_private_key()
         self.browser_context = await self.browser.new_context(
             **pixel5,
-            record_video_dir="results/videos/",
+            record_video_dir=self.results_dir / "videos/",
             # Disable CORS checks in order to allow use of mock wallet
             bypass_csp=True
         )
@@ -82,10 +85,10 @@ class UserAgent:
                          t=exception_type,
                          v=exception_value,
                          tb=exception_traceback)
-        with open("results/tx_log_snapshot.json", "w") as outfile:
+        with open(self.results_dir / "tx_log_snapshot.json", "w") as outfile:
             json.dump(self.wallet_tx_snapshot, outfile)
 
-        await self.browser_context.tracing.stop(path="results/trace.zip")
+        await self.browser_context.tracing.stop(path=self.results_dir / "trace.zip")
         await self.browser_context.close()
         await self.browser.close()
         await self.playwright.stop()

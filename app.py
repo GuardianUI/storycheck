@@ -1,7 +1,6 @@
 import gradio as gr
 from loguru import logger
 import asyncio
-from asyncio import CancelledError
 import os
 from dotenv import load_dotenv
 from markdown import StoryParser, UserStory

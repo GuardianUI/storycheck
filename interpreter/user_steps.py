@@ -6,9 +6,16 @@ import re
 import time
 from loguru import logger
 from PIL import Image
+import os
+from pathlib import Path
 
 
 class UserStepInterpreter(StepInterpreter):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
+        self.results_dir = Path(results_dir)
 
     @property
     def saved_screenshot_path(self):
@@ -17,7 +24,8 @@ class UserStepInterpreter(StepInterpreter):
         #     'self.user_agent.session: {session}', session=self.user_agent.session)
 
     async def save_screenshot(self):
-        path = f'results/{time.monotonic_ns()}_{self.__class__.__name__}.png'
+        path = self.results_dir / \
+            f'screenshots/{time.monotonic_ns()}_{self.__class__.__name__}.png'
         await self.user_agent.page.screenshot(path=path,
                                               animations='disabled',
                                               caret='initial')
