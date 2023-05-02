@@ -64,13 +64,13 @@ The prerequisites section sets conditions which allow the test to execute from a
 
 The following example sets up a local fork of ETH Mainnet starting from the latest block using a default RPC.
 
-
 ```markdown
 ## Prerequisites
 
 - Chain
   - Id 1
 ```
+
 ### Example 2. Goerli test with specific block and RPC
 
 The following example sets up a local fork of Goerli Testnet starting from the given block number and using a given RPC URL.
@@ -103,7 +103,7 @@ The first time a test is run, all write transactions going through `window.ether
 flowchart TD
     A[User Story] -->|check| B(StoryCheck)
     B --> |parse| C[Markdown Parser]
-    B -->|play| D[Browser Driver / Playwright]
+    B -->|play| D[Browser Driver / playwright]
     D -->|locate UI element| E[AI Model]
     D -->|sign tx| F[Mock Wallet / EIP1193Bridge]
     F -->|blokchain tx| G[Local EVM Fork / anvil]
