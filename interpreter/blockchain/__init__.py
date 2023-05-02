@@ -8,10 +8,11 @@ class LocalChain:
     Wrapper around a local blockchain instance managed via Foundry Anvil
     """
 
-    def __init__(self, chain_id='1', block_n=None):
+    def __init__(self, chain_id='1', block_n=None, rpc_url=None):
         assert isinstance(chain_id, str)
         self.chain_id = chain_id
         self.block_n = block_n
+        self.rpc_url = rpc_url
 
     anvil_proc = None
 
@@ -36,7 +37,6 @@ class LocalChain:
         # Create the subprocess; redirect the standard output
         # into a pipe.
         chain_args = ["--chain-id", self.chain_id,
-                      "--fork-url", self.RPC_URLs[self.chain_id],
                       "--host", self.ANVIL_HOST,
                       "--port", self.ANVIL_PORT,
                       "--config-out", "results/anvil-out.json",
@@ -49,14 +49,25 @@ class LocalChain:
             block_args = ["--fork-block-number", self.block_n]
         else:
             block_args = []
+        if self.rpc_url is None:
+            self.rpc_url = self.RPC_URLs.get(self.chain_id)
+            assert self.rpc_url is not None, \
+                f"""
+                No known RPC URL for Chain ID: {self.chain_id}.
+                Please provide one via explicit RPC parameter.
+                """
+        rpc_args = ["--fork-url", self.rpc_url]
+
         logger.debug(
-            'Starting anvil EVM Fork with args: {chain} {block}',
+            'Starting anvil EVM Fork with args: {chain} {block} {rpc}',
             chain=chain_args,
-            block=block_args)
+            block=block_args,
+            rpc=rpc_args)
         self.anvil_proc = await asyncio.create_subprocess_exec(
             "anvil",
             *chain_args,
             *block_args,
+            *rpc_args,
             # "--no-mining",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

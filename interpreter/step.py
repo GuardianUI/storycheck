@@ -11,6 +11,15 @@ def get_prompt_text(ast_prompt: list) -> str:
             return c['text']
 
 
+def get_prompt_link(ast_prompt: list) -> str:
+    """
+    Helper method for pulling URL value from a parsed MD AST structure
+    """
+    for c in ast_prompt[0]['children']:
+        if c['type'] == 'link':
+            return c['link']
+
+
 class StepInterpreter(ABC):
 
     def __init__(self, user_agent=None):

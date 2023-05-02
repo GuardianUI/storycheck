@@ -20,10 +20,21 @@ class CheckStep(StepInterpreter):
         pass
 
 
+def cleanup_tx(tx):
+    """
+    Edit out from transaction signature variables such as gasLimit
+    that are not essential for storycheck.
+    """
+    for p in tx["writeTx"]['params']:
+        p.pop('gasLimit', None)
+
+
 def tx_matches(txsaved, txnew):
     """
     Compare two blockchain write transactions for matching signature and results.
     """
+    cleanup_tx(txsaved)
+    cleanup_tx(txnew)
     # compare call sigs
     jswrite = json.dumps(txsaved["writeTx"])
     jnwrite = json.dumps(txnew["writeTx"])

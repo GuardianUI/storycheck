@@ -58,7 +58,31 @@ Note: Storycheck is currently most reliable for testing the UI of smartphones an
 
 ## Prerequisites Section
 
-The prerequisites section normally includes `ChainId` and `Block` parameters, which allow the test to execute from a deterministic blockchain state, which respectively allows for predictable results.
+The prerequisites section sets conditions which allow the test to execute from a deterministic blockchain state, which respectively allows for predictable results. Currently supported prerequsite is `Chain` at the top level with `Id` as a required parameter, and optionally `Block` and `RPC`. These parameters are passed to `anvil` to create a local EVM fork for the test run.
+
+### Example 1. Etheremum Mainnet test
+
+The following example sets up a local fork of ETH Mainnet starting from the latest block using a default RPC.
+
+
+```markdown
+## Prerequisites
+
+- Chain
+  - Id 1
+```
+### Example 2. Goerli test with specific block and RPC
+
+The following example sets up a local fork of Goerli Testnet starting from the given block number and using a given RPC URL.
+
+```markdown
+## Prerequisites
+
+- Chain
+  - Id 5
+  - Block 8856964
+  - RPC https://eth-goerli.g.alchemy.com/v2/3HpUm27w8PfGlJzZa4jxnxSYs9vQNMMM
+```
 
 ## User Story Section
 
@@ -79,10 +103,10 @@ The first time a test is run, all write transactions going through `window.ether
 flowchart TD
     A[User Story] -->|check| B(StoryCheck)
     B --> |parse| C[Markdown Parser]
-    B -->|play| D[Browser Driver]
+    B -->|play| D[Browser Driver (Playwright)]
     D -->|locate UI element| E[AI Model]
-    D -->|sign tx| F[Mock Wallet]
-    F -->|blokchain tx| G[Local Ethereum Fork]
+    D -->|sign tx| F[Mock Wallet (EIP1193Bridge)]
+    F -->|blokchain tx| G[Local EVM Fork (anvil)]
 ```
 
 ## Directory structure

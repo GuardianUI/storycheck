@@ -1,5 +1,5 @@
 from .section import StorySection
-from .step import StepInterpreter, get_prompt_text
+from .step import StepInterpreter, get_prompt_text, get_prompt_link
 import re
 from enum import Enum, auto
 from loguru import logger
@@ -21,37 +21,48 @@ class ChainReq(ReqStep):
 
     async def interpret_prompt(self, prompt):
 
-        def get_kvs(ast_prompt: list) -> str:
+        def get_kv(ast_prompt: list) -> str:
             """
-            breaks up a list of prompts in key, value pairs
+            breaks up a prompt line in key, value pair
             for example if a is one of the prompts in the list
             >>> a='id : 12345'
             >>> f = re.search(r'(\w+\b)\s*[:= ]+\s*(\d+)', a, re.IGNORECASE)
             >>> f.group(0), f.group(1), f.group(2)
             ('id : 12345', 'id', '12345')
             """
-            kvs = {}
-            for c in ast_prompt:
-                if c['type'] == 'list_item':
-                    text = get_prompt_text(c['children'])
-                    m = re.search(
-                        r'(\w+\b)\s*[:= ]+\s*(\d+)', text, re.IGNORECASE)
-                    k = m.group(1)
-                    # normalize key name
-                    k = k.strip().lower()
-                    v = m.group(2)
-                    kvs[k] = v
-            return kvs
+            key = None
+            value = None
+            if ast_prompt['type'] == 'list_item':
+                text = get_prompt_text(ast_prompt['children'])
+                logger.debug(
+                    "Splitting '{txt}' into key, value pair", txt=text)
+                m = re.search(
+                    r'(\w+\b)\s*[:= ]+\s*(.*)', text, re.IGNORECASE)
+                k = m.group(1)
+                # normalize key name
+                key = k.strip().lower()
+                value = m.group(2)
+            return key, value
 
         logger.debug('chain prompt:\n {prompt}', prompt=pf(prompt))
         chain_params = prompt[1]['children']
         logger.debug(
             'chain params prompt:\n {prompt}', prompt=pf(chain_params))
-        kvs = get_kvs(chain_params)
-        logger.debug('chain prereq params:\n {kvs}', kvs=pf(kvs))
-        chain_id = kvs.get('id', '1')
-        block_n = kvs.get('block', None)
-        chain = LocalChain(chain_id=chain_id, block_n=block_n)
+        chain_id = '1'
+        block_n = None
+        rpc_url = None
+        for chain_param in chain_params:
+            key, value = get_kv(chain_param)
+            if key == 'rpc':
+                rpc_url = get_prompt_link(chain_param['children'])
+            elif key == 'id':
+                chain_id = value
+            elif key == 'block':
+                block_n = value
+            else:
+                raise ValueError(
+                    f"Invalid Prerequisite Chain parameter: {key}")
+        chain = LocalChain(chain_id=chain_id, block_n=block_n, rpc_url=rpc_url)
         # set chain in session context
         self.chain = chain
         logger.debug('prompt chain id: {chain_id},\n block: {block_n}',
