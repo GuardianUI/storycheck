@@ -24,6 +24,29 @@ async def log_browser_console_message(msg):
             'Error while parsing browser console messages: message {m}', m=e)
 
 
+async def log_wallet_balance(page):
+    # check status of mock wallet
+    mwallet = await page.evaluate("() => window.ethereum")
+    logger.debug("window.ethereum: {mw}", mw=(mwallet is not None))
+    # check wallet balance at the beginning of step
+    wbalance = await page.evaluate(
+        """
+            async () => {
+                    const wallet = window.ethereum
+                    const signer = window.ethereum?.signer
+                    let balance = -1
+                    if (wallet && signer) {
+                        balance = await wallet.send(
+                            'eth_getBalance',
+                            [signer.address, 'latest']
+                        )
+                    }
+                    return balance
+                }
+            """)
+    logger.debug("user wallet balance: {b}", b=wbalance)
+
+
 class StoryInterpreter:
     """
     Given a populated UserStory object, it iterates over the list of
@@ -50,6 +73,7 @@ class StoryInterpreter:
                 user_steps = UserSteps(user_agent=user_agent,
                                        prompts=self.user_story.user_steps)
                 await user_steps.run()
+                await log_wallet_balance(page)
                 # run expected results section
         async with ExpectedResults(
                 prompts=self.user_story.expected_results) as expected_results:

@@ -57,27 +57,6 @@ class UserStepInterpreter(StepInterpreter):
         logger.debug("Page done rendering.")
         await self.save_screenshot()
 
-        # check status of mock wallet
-        mwallet = await page.evaluate("() => window.ethereum")
-        logger.debug("window.ethereum: {mw}", mw=(mwallet is not None))
-        # check wallet balance at the beginning of step
-        wbalance = await page.evaluate(
-            """
-            async () => {
-                    const wallet = window.ethereum
-                    const signer = window.ethereum?.signer
-                    let balance = -1
-                    if (wallet && signer) {
-                        balance = await wallet.send(
-                            'eth_getBalance',
-                            [signer.address, 'latest']
-                        )
-                    }
-                    return balance
-                }
-            """)
-        logger.debug("user wallet balance: {b}", b=wbalance)
-
 
 class BrowseStep(UserStepInterpreter):
 

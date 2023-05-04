@@ -15,19 +15,17 @@ Note: Storycheck is currently most reliable for testing the UI of smartphones an
 ## Example User Story Input
 
 ```md
-# Creating a new DAO LLC on Arbitrum One via SporosDAO.xyz
+# Creating a new DAO LLC via SporosDAO.xyz on Goerli Test Net
 
 ## Prerequisites
 
 - Chain
-  - Id 42161
-  - Block 82121263
+  - Id 5
+  - Block 8856964
 
 ## User Steps
 
 1. Browse to https://app.sporosdao.xyz/
-1. Click on Connect Wallet in the top right corner
-1. Click on circle icon in the top right corner
 1. Click on Create a new company button
 1. Click on Go! right arrow button left of Available
 1. Select On-chain name text field
@@ -43,13 +41,17 @@ Note: Storycheck is currently most reliable for testing the UI of smartphones an
 1. Type test@email.com
 1. Scroll down
 1. Click on Continue button
-1. Click on Continue button right of Back button
+1. Click on Continue button at the top
 1. Scroll up
 1. Click on the checkbox left of Agree
 1. Scroll down
 1. Click on Continue button
 1. Scroll up
 1. Click on Deploy Now button
+1. Press Tab
+1. Press Tab
+1. Press Enter
+1. Press Home
 
 ## Expected Results
 
@@ -103,6 +105,27 @@ The first time a test is run, all write transactions going through `window.ether
 - There is malicious injected code that changes the behavior of the app. A big **red alert** is in order! App infrastructure is compromised: hosting providers, third party libaries, or build tools.
 - There is a bug in some of the third party dependencies that affects UI behavior. Developer attention required to track down and fix the root cause.
 
+### Saved Snaphots
+
+Snapshot files with wallet transactions are saved to a `.snapshot.json` file in the same directory as the story file is stored.
+
+
+```ml
+├─ markdown — "Markdown parser. Outputs abstract syntax tree (AST) to interpreter."
+│
+├──┬─ interpreter — "Runtime engine which takes AST as input and executes it."
+│  │  │
+│  ├──┼──┬─ browser — "Playwright browser driver."
+│  │  │  │
+│  │  │  └─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context as Metamask."
+│  │  │
+│  │  ├─ ai — "RefExp GPT AI model that predicst UI element location based on natural language referring expressions."
+│  │  │
+│  │  └─ blockchain — "Local EVM fork runtime via Foundry Anvil."
+│  │
+│  └─ examples — "Example user stories."
+```
+
 ## High level design
 
 ```mermaid
@@ -148,22 +171,23 @@ To run locally or in another dev environment, copy the steps from [`.gitpod.yml`
 StoryCheck can be run as a shell command or as a web service.
 
 ```bash
-$>python3 app.py --help
+$>storycheck --help
 
 
-usage: StoryCheck by GuardianUI [-h] -i INPUT_FILE [-o OUTPUT_DIR] [--serve]
+usage: StoryCheck by GuardianUI [-h] [-o OUTPUT_DIR] [--serve] storypath
 
 Parses and executes user stories written in markdown format.
 
+positional arguments:
+  storypath             Path to the user story input markdown file (e.g. mystory.md).
+
 options:
   -h, --help            show this help message and exit
-  -i INPUT_FILE, --input-file INPUT_FILE
-                        path to the user story input markdown file (e.g. story.md)
   -o OUTPUT_DIR, --output-dir OUTPUT_DIR
-                        directory where all results from the storycheck will be stored.
-  --serve               whether to start as a web service or run storycheck and exit.
+                        Directory where all results from the storycheck run will be stored. Defaults to "results"
+  --serve               Run as a web service. Defaults to "False".
 
-Copyright (c) guardianui.com 2023
+Copyright(c) guardianui.com 2023
 ```
 
 ### Command line exit codes

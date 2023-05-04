@@ -5,7 +5,6 @@
 - Chain
   - Id 5
   - Block 8856964
-  - RPC https://eth-goerli.g.alchemy.com/v2/3HpUm27w8PfGlJzZa4jxnxSYs9vQN7FZ
 
 ## User Steps
 

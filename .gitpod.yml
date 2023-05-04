@@ -17,7 +17,7 @@ tasks:
 ports:
   - name: StoryCheck Web App
     port: 7860
-    onOpen: open-preview
+    onOpen: notify
 
 vscode:
   extensions:
