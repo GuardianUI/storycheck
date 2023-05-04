@@ -62,7 +62,8 @@ class ChainReq(ReqStep):
             else:
                 raise ValueError(
                     f"Invalid Prerequisite Chain parameter: {key}")
-        chain = LocalChain(chain_id=chain_id, block_n=block_n, rpc_url=rpc_url)
+        chain = LocalChain(chain_id=chain_id,
+                           block_n=block_n, rpc_url=rpc_url)
         # set chain in session context
         self.chain = chain
         logger.debug('prompt chain id: {chain_id},\n block: {block_n}',

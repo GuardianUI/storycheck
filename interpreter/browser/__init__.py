@@ -4,6 +4,7 @@ from pathlib import Path
 from eth_account import Account
 import json
 import os
+import asyncio
 
 
 def generate_private_key():
@@ -18,7 +19,9 @@ def generate_private_key():
 
 class UserAgent:
 
-    def __init__(self):
+    def __init__(self, prerequisites):
+        assert prerequisites is not None
+        self.prerequisites = prerequisites
         # shared session object during a story check run
         self.session = dict()
         results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
@@ -55,7 +58,30 @@ class UserAgent:
 
         # Pass story prerequisites to mock wallet via js init script
         await self.browser_context.add_init_script(init_script)
+        logger.info("Added browser context init script.")
 
+        # rewrite RPC requests to local evm / anvil fork
+        prereqs = self.prerequisites
+        chain_step = prereqs.interpreters[prereqs.ReqLabels.CHAIN]
+        chain = chain_step.chain
+        remote_rpc_url = chain.rpc_url
+        local_fork_rpc_url = chain.ANVIL_RPC
+
+        async def reroute_rpc(route):
+            orig_url = route.request.url
+            logger.debug("""Rerouting RPC request:
+                original url: {original_url}
+                new url: {new_url}
+                """,
+                         original_url=orig_url,
+                         new_url=local_fork_rpc_url)
+            response = await route.fetch(url=local_fork_rpc_url)
+            json = await response.json()
+            await route.fulfill(response=response, json=json)
+
+        # await self.browser_context.route(remote_rpc_url, reroute_rpc)
+        # logger.info(
+        #     f"Set RPC reroute rule from {remote_rpc_url} to {local_fork_rpc_url}")
         self.wallet_tx_snapshot = []
 
         def log_wallet_tx(tx):
@@ -72,8 +98,25 @@ class UserAgent:
             sources=True,
             title='StoryCheck-Trace')
         self.page = await self.browser_context.new_page()
+
+        # remember pending tasks before this scope
+        self.previous_tasks = asyncio.all_tasks()
+
         logger.debug("Started playwright user agent.")
         return self
+
+    async def _cancel_pending_tasks(self):
+        """
+        Cancel in-scope pending tasks.
+        For example pending network requests initiated from within the web app.
+        """
+        all_tasks = asyncio.all_tasks()
+        inscope_tasks = all_tasks - self.previous_tasks
+        logger.debug('Cleaning up unfinished browser tasks: {tasks_n}',
+                     tasks_n=len(inscope_tasks))
+        for task in inscope_tasks:
+            task.cancel()
+        logger.debug('Browser tasks cleaned up.')
 
     async def __aexit__(self, exception_type, exception_value, exception_traceback):
         """
@@ -87,7 +130,8 @@ class UserAgent:
                          tb=exception_traceback)
         with open(self.results_dir / "tx_log_snapshot.json", "w") as outfile:
             json.dump(self.wallet_tx_snapshot, outfile)
-
+        # wait for all pending async tasks to complete
+        await self._cancel_pending_tasks()
         await self.browser_context.tracing.stop(path=self.results_dir / "trace.zip")
         await self.browser_context.close()
         await self.browser.close()
