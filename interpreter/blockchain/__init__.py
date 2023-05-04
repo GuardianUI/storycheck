@@ -1,6 +1,8 @@
 import asyncio
 from loguru import logger
 from aiohttp import ClientSession
+import os
+from pathlib import Path
 
 
 class LocalChain:
@@ -13,6 +15,8 @@ class LocalChain:
         self.chain_id = chain_id
         self.block_n = block_n
         self.rpc_url = rpc_url
+        results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
+        self.results_dir = Path(results_dir)
 
     anvil_proc = None
 
@@ -39,7 +43,7 @@ class LocalChain:
         chain_args = ["--chain-id", self.chain_id,
                       "--host", self.ANVIL_HOST,
                       "--port", self.ANVIL_PORT,
-                      "--config-out", "results/anvil-out.json",
+                      "--config-out", self.results_dir / "anvil-out.json",
                       "--gas-price", "0",
                       "--base-fee", "0"
                       #   "--no-cors"

@@ -1,7 +1,6 @@
 import gradio as gr
 from loguru import logger
 import asyncio
-from asyncio import CancelledError
 import os
 from dotenv import load_dotenv
 from markdown import StoryParser, UserStory
@@ -37,16 +36,16 @@ def load_args():
         description='Parses and executes user stories written in markdown format.',
         epilog='Copyright(c) guardianui.com 2023')
     # parser.add_argument('filename')           # positional argument
-    parser.add_argument('-i', '--input-file',
-                        required=True,
-                        help='path to the user story input markdown file (e.g. story.md)')
+    parser.add_argument('storypath',
+                        help='Path to the user story input markdown file (e.g. mystory.md).')
     parser.add_argument('-o', '--output-dir',
-                        help='directory where all results from the storycheck will be stored.',
+                        help=f'Directory where all results from the storycheck run will be stored. Defaults to "{RESULTS_DIR}"',
                         default=RESULTS_DIR)
+    run_as_service = False
     parser.add_argument('--serve',
                         action='store_true',
-                        default=False,
-                        help='whether to start as a web service or run storycheck and exit.')
+                        default=run_as_service,
+                        help=f'Run as a web service. Defaults to "{run_as_service}".')
     args = parser.parse_args()
     return args
 
@@ -76,7 +75,7 @@ def start_web_service(args):
 
 
 async def run_check(args):
-    with open(args.input_file, 'r') as file:
+    with open(args.storypath, 'r') as file:
         initial_story = file.read()
     return await story_check(initial_story)
 
@@ -84,9 +83,9 @@ async def run_check(args):
 async def main():
     load_dotenv()
     args = load_args()
-    story_path = Path(args.input_file)
-    logger.debug('Opening input file: {infile}', infile=story_path)
-    assert story_path.exists(), 'Input file not found.'
+    story_path = Path(args.storypath)
+    logger.debug('Opening story file: {infile}', infile=story_path)
+    assert story_path.exists(), 'Story file not found.'
     os.environ["GUARDIANUI_STORY_PATH"] = str(story_path)
     output_dir = args.output_dir
     logger.debug('Setting output dir to: {o}', o=output_dir)
