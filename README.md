@@ -68,7 +68,7 @@ By default each test starts with `10,000 ETH` in the mock user wallet (same as a
 
 In order to fund the mock wallet with other tokens (e.g. USDC, DAI, NFTs), the `User Steps` section of the story file should begin with prompts that initiate the funding via front end interactions (e.g. Uniswap flow for ETH/USDC swap).
 
-### Example 1. Etheremum Mainnet test
+### Example 1. Ethereum Mainnet test
 
 The following example sets up a local fork of ETH Mainnet starting from the latest block using a default RPC.
 
