@@ -4,7 +4,7 @@
 
 1. Chain
    - Id 324
-   - Block 2623190
+   - Block 2828565
    - RPC https://zksync2-mainnet.zksync.io/
 
 ## User Steps
@@ -14,8 +14,9 @@
 1. Click Metamask
 1. Click WETH on the right under Max:0
 1. Click ETH
-1. Select text field under send
+1. Select 0.0 below zksync era send
 1. Type 1.0
+1. Scroll down
 1. Click Transfer button at the bottom
 
 ## Expected Results

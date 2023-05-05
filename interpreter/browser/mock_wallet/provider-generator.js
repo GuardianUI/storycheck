@@ -66,6 +66,8 @@ try {
       console.info('User wallet updated balance is: ', { balance })
       console.debug('User mock wallet initialized.')
       window.localStorage.setItem('__GUARDIANUI_MOCK__IS_INITIALIZED', true)
+      await window.__guardianui_hook_rpc_router()
+      console.debug('Mock RPC router hooked.')
     }
   } else {
     console.info('ETH mock user wallet already exist in this browser context. User account address: ', signer.address)

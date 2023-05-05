@@ -63,7 +63,7 @@ async def log_network_request(request):
             request_json = request.post_data_json
         except Exception:
             request_json = None
-        logger.opt(colors=True).debug("""<bg #70A599>[Browser POST request]</bg #70A599>:
+        logger.opt(colors=True).debug("""<bg #70A599>[Browser POST request+response]</bg #70A599>:
             url: {url}
             request json: {request_json}
 

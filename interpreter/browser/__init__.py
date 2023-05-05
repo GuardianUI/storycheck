@@ -27,6 +27,46 @@ class UserAgent:
         results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
         self.results_dir = Path(results_dir)
 
+    async def hook_rpc_router(self):
+        # rewrite RPC requests to local evm / anvil fork
+        prereqs = self.prerequisites
+        chain_step = prereqs.interpreters[prereqs.ReqLabels.CHAIN]
+        chain = chain_step.chain
+        remote_rpc_url = chain.rpc_url
+        local_fork_rpc_url = chain.ANVIL_RPC
+
+        async def reroute_rpc(route):
+            orig_url = route.request.url
+            logger.debug("""Rerouting RPC request:
+                original url: {original_url}
+                new url.    : {new_url}
+                """,
+                         original_url=orig_url,
+                         new_url=local_fork_rpc_url)
+            try:
+                logger.debug("""Fetching new url: {new_url}
+                    """,
+                             new_url=local_fork_rpc_url)
+                response = await route.fetch(url=local_fork_rpc_url)
+                logger.debug("""Fetched new url: {new_url}
+                    OK: {ok}
+                    """,
+                             new_url=local_fork_rpc_url,
+                             ok=response.ok)
+                # json = await response.json()
+                await route.fulfill(response=response)
+            except Exception as e:
+                logger.exception(
+                    "Exception while rerouting RPC request.")
+                # logger.exception(
+                #     "Exception setting up RPC reroute rule. Error: {e}", e=e)
+                await route.abort()
+
+        # Runs last.
+        await self.page.route(remote_rpc_url, reroute_rpc)
+        logger.info(
+            f"Set RPC reroute rule from {remote_rpc_url} to {local_fork_rpc_url}")
+
     async def __aenter__(self):
         """
         runs when prerequisite used in 'async with' python construct
@@ -47,41 +87,18 @@ class UserAgent:
             bypass_csp=True
         )
 
-        # def mockMnemonic():
-        #     return mnemonic
-        # await self.browser_context.expose_function("__mockMnemonic", mockMnemonic)
         here = Path(__file__).parent
         fname = here / "mock_wallet/provider/provider.js"
         with open(Path(fname), "r") as file:
             init_script = file.read().replace(
                 "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
 
+        await self.browser_context.expose_binding("__guardianui_hook_rpc_router", self.hook_rpc_router)
+
         # Pass story prerequisites to mock wallet via js init script
         await self.browser_context.add_init_script(init_script)
         logger.info("Added browser context init script.")
 
-        # rewrite RPC requests to local evm / anvil fork
-        prereqs = self.prerequisites
-        chain_step = prereqs.interpreters[prereqs.ReqLabels.CHAIN]
-        chain = chain_step.chain
-        remote_rpc_url = chain.rpc_url
-        local_fork_rpc_url = chain.ANVIL_RPC
-
-        async def reroute_rpc(route):
-            orig_url = route.request.url
-            logger.debug("""Rerouting RPC request:
-                original url: {original_url}
-                new url: {new_url}
-                """,
-                         original_url=orig_url,
-                         new_url=local_fork_rpc_url)
-            response = await route.fetch(url=local_fork_rpc_url)
-            json = await response.json()
-            await route.fulfill(response=response, json=json)
-
-        # await self.browser_context.route(remote_rpc_url, reroute_rpc)
-        # logger.info(
-        #     f"Set RPC reroute rule from {remote_rpc_url} to {local_fork_rpc_url}")
         self.wallet_tx_snapshot = []
 
         def log_wallet_tx(tx):

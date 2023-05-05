@@ -12,7 +12,7 @@ tasks:
       cd -
     command: |
       foundryup
-      ./run.sh
+      ./storycheck.sh --help
 
 ports:
   - name: StoryCheck Web App
