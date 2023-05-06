@@ -27,45 +27,84 @@ class UserAgent:
         results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
         self.results_dir = Path(results_dir)
 
-    async def hook_rpc_router(self):
-        # rewrite RPC requests to local evm / anvil fork
+    def get_chain(self):
+        """
+        Return chain information from the context of story prerequisites
+        """
         prereqs = self.prerequisites
         chain_step = prereqs.interpreters[prereqs.ReqLabels.CHAIN]
         chain = chain_step.chain
+        return chain
+
+    async def hook_rpc_router(self):
+        # rewrite RPC requests to local evm / anvil fork
+        chain = self.get_chain()
         remote_rpc_url = chain.rpc_url
         local_fork_rpc_url = chain.ANVIL_RPC
 
         async def reroute_rpc(route):
             orig_url = route.request.url
+            new_url = local_fork_rpc_url
+            try:
+                request_json = route.request.post_data_json
+            except Exception:
+                request_json = None
             logger.debug("""Rerouting RPC request:
                 original url: {original_url}
                 new url.    : {new_url}
+                method: {method}
+                request json: {request_json}
                 """,
                          original_url=orig_url,
-                         new_url=local_fork_rpc_url)
+                         new_url=new_url,
+                         method=route.request.method,
+                         request_json=request_json)
             try:
-                logger.debug("""Fetching new url: {new_url}
-                    """,
-                             new_url=local_fork_rpc_url)
-                response = await route.fetch(url=local_fork_rpc_url)
-                logger.debug("""Fetched new url: {new_url}
+                # continue_ mandates same protocol: https != http
+                # await route.continue_(url=new_url)
+                response = await route.fetch(url=new_url)
+                try:
+                    response_json = await response.json()
+                except Exception:
+                    response_json = None
+                logger.opt(colors=True).debug("""<bg #70A599>[RPC Response]</bg #70A599>:
+                    url: {url}
+                    method: {method}
+                    request json: {request_json}
+
                     OK: {ok}
+
+                    response status: {response_status},
+                    response json: {response_json}
                     """,
-                             new_url=local_fork_rpc_url,
-                             ok=response.ok)
-                # json = await response.json()
+                                              url=new_url,
+                                              request_json=request_json,
+                                              method=route.request.method,
+                                              ok=response.ok,
+                                              response_status=response.status,
+                                              response_json=response_json
+                                              )
                 await route.fulfill(response=response)
             except Exception as e:
                 logger.exception(
-                    "Exception while rerouting RPC request.")
-                # logger.exception(
-                #     "Exception setting up RPC reroute rule. Error: {e}", e=e)
+                    "Exception during routing RPC. Error: {e}", e=e)
                 await route.abort()
+            finally:
+                logger.debug("""Finished rerouting RPC request:
+                    original url: {original_url}
+                    new url.    : {new_url}
+                    method: {method}
+                    request json: {request_json}
+                    """,
+                             original_url=orig_url,
+                             new_url=new_url,
+                             method=route.request.method,
+                             request_json=request_json)
 
         # Runs last.
         await self.page.route(remote_rpc_url, reroute_rpc)
         logger.info(
-            f"Set RPC reroute rule from {remote_rpc_url} to {local_fork_rpc_url}")
+            f"Activated RPC reroute rule from {remote_rpc_url} to {local_fork_rpc_url}")
 
     async def __aenter__(self):
         """
@@ -90,10 +129,16 @@ class UserAgent:
         here = Path(__file__).parent
         fname = here / "mock_wallet/provider/provider.js"
         with open(Path(fname), "r") as file:
-            init_script = file.read().replace(
-                "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
+            init_script = file.read()
 
-        await self.browser_context.expose_binding("__guardianui_hook_rpc_router", self.hook_rpc_router)
+        init_script = init_script.replace(
+            "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
+        # chain = self.get_chain()
+        # init_script = init_script.replace(
+        #     "'__GUARDIANUI_MOCK__CHAIN_ID'", f"{chain.chain_id}")
+
+        await self.browser_context.expose_binding("__guardianui_hook_rpc_router",
+                                                  self.hook_rpc_router)
 
         # Pass story prerequisites to mock wallet via js init script
         await self.browser_context.add_init_script(init_script)
@@ -147,10 +192,11 @@ class UserAgent:
                          tb=exception_traceback)
         with open(self.results_dir / "tx_log_snapshot.json", "w") as outfile:
             json.dump(self.wallet_tx_snapshot, outfile)
+        if exception_type != asyncio.exceptions.CancelledError:
+            await self.browser_context.tracing.stop(path=self.results_dir / "trace.zip")
+            await self.browser_context.close()
+            await self.browser.close()
+            await self.playwright.stop()
         # wait for all pending async tasks to complete
-        await self._cancel_pending_tasks()
-        await self.browser_context.tracing.stop(path=self.results_dir / "trace.zip")
-        await self.browser_context.close()
-        await self.browser.close()
-        await self.playwright.stop()
+        # await self._cancel_pending_tasks()
         logger.debug("Stopped playwright.")

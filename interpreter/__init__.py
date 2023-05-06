@@ -3,7 +3,6 @@ from .prerequisites import Prerequisites
 from .user_steps import UserSteps
 from .expected_results import ExpectedResults
 from .browser import UserAgent
-import json
 
 
 async def log_browser_console_message(msg):
@@ -52,32 +51,39 @@ async def log_network_request(request):
     """
     Log network requests via XHR or fetch
     """
-    response = await request.response()
-    await response.finished()
     if request.method == 'POST':
-        try:
-            response_json = await response.json()
-        except Exception:
-            response_json = None
         try:
             request_json = request.post_data_json
         except Exception:
             request_json = None
-        logger.opt(colors=True).debug("""<bg #70A599>[Browser POST request+response]</bg #70A599>:
+        logger.opt(colors=True).debug("""<bg #70A599>[Browser POST request]</bg #70A599>:
             url: {url}
             request json: {request_json}
-
-            OK: {ok}
-
-            response status: {response_status},
-            response json: {response_json}
             """,
                                       url=request.url,
-                                      request_json=request_json,
-                                      ok=response.ok,
-                                      response_status=response.status,
-                                      response_json=response_json
+                                      request_json=request_json
                                       )
+        # response = await request.response()
+        # await response.finished()
+        # try:
+        #     response_json = await response.json()
+        # except Exception:
+        #     response_json = None
+        # logger.opt(colors=True).debug("""<bg #70A599>[Browser POST response]</bg #70A599>:
+        #     url: {url}
+        #     request json: {request_json}
+
+        #     OK: {ok}
+
+        #     response status: {response_status},
+        #     response json: {response_json}
+        #     """,
+        #                               url=request.url,
+        #                               request_json=request_json,
+        #                               ok=response.ok,
+        #                               response_status=response.status,
+        #                               response_json=response_json
+        #                               )
     # else:
     #     logger.opt(colors=True).debug("""<bg #70A599>[Browser GET request]</bg #70A599>:
     #         url: {url}
@@ -115,7 +121,7 @@ class StoryInterpreter:
                 user_steps = UserSteps(user_agent=user_agent,
                                        prompts=self.user_story.user_steps)
                 await user_steps.run()
-                await log_wallet_balance(page)
+                # await log_wallet_balance(page)
                 # run expected results section
         async with ExpectedResults(
                 prompts=self.user_story.expected_results) as expected_results:

@@ -19,8 +19,9 @@ try {
   if (!window["ethereum"]) {
     const ANVIL_URL = "http://127.0.0.1:8545";
 
+    // const chainId = '__GUARDIANUI_MOCK__CHAIN_ID'
     // link to local foundry anvil fork of mainnet
-    const rpcProvider = await new JsonRpcProvider(ANVIL_URL) // , {chainId: 5});
+    const rpcProvider = await new JsonRpcProvider(ANVIL_URL) // , chainId) // , {chainId: 5});
     console.debug('JsonRpcProvider waiting to become ready')
     const isRpcReady = await rpcProvider.ready
     console.info('JsonRpcProvider ready: ', { isRpcReady })
