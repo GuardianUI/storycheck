@@ -39,13 +39,13 @@ def tx_matches(txsaved, txnew):
     jswrite = json.dumps(txsaved["writeTx"])
     jnwrite = json.dumps(txnew["writeTx"])
     if jswrite != jnwrite:
-        logger.warning("""Transaction call signatures do not match:
-                        Saved tx sig: {s}
-                        New tx sig: {n}
+        logger.error("""Transaction call signatures do not match:
+                        Saved tx sig:\n {s}
+                        New tx sig:\n {n}
                         """,
-                       s=jswrite,
-                       n=jnwrite
-                       )
+                     s=jswrite,
+                     n=jnwrite
+                     )
         return False
     # compare exception sigs
     se = txsaved['writeTxException']
@@ -103,8 +103,7 @@ def compare_snapshots(saved=None, new=None):
     else:
         mismatched = True
     if mismatched:
-        logger.warning('Mismatched transactions: {m}', m=mismatched
-                       )
+        logger.error('Mismatched transactions: {m}', m=mismatched)
         errors = {
             'saved_snapshot': saved_json,
             'new_snapshot': new_json

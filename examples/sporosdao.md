@@ -30,7 +30,7 @@
 1. Scroll down
 1. Click on Continue button
 1. Scroll up
-1. Click on Deploy Now button
+1. Click on Deploy Now button at the bottom
 1. Press Tab
 1. Press Tab
 1. Press Enter

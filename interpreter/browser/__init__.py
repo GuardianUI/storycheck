@@ -4,6 +4,7 @@ from pathlib import Path
 from eth_account import Account
 import json
 import os
+import asyncio
 
 
 def generate_private_key():
@@ -18,11 +19,101 @@ def generate_private_key():
 
 class UserAgent:
 
-    def __init__(self):
+    def __init__(self, prerequisites):
+        assert prerequisites is not None
+        self.prerequisites = prerequisites
         # shared session object during a story check run
         self.session = dict()
         results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
         self.results_dir = Path(results_dir)
+
+    def get_chain(self):
+        """
+        Return chain information from the context of story prerequisites
+        """
+        prereqs = self.prerequisites
+        chain_step = prereqs.interpreters[prereqs.ReqLabels.CHAIN]
+        chain = chain_step.chain
+        return chain
+
+    def get_local_fork_rpc_url(self):
+        chain = self.get_chain()
+        return chain.ANVIL_RPC
+
+    def get_remote_rpc_url(self):
+        chain = self.get_chain()
+        return chain.rpc_url
+
+    async def hook_rpc_router(self, source):
+        # rewrite RPC requests to local evm / anvil fork
+        local_fork_rpc_url = self.get_local_fork_rpc_url()
+        remote_rpc_url = self.get_remote_rpc_url()
+
+        async def reroute_rpc(route):
+            orig_url = route.request.url
+            new_url = local_fork_rpc_url
+            try:
+                request_json = route.request.post_data_json
+            except Exception:
+                request_json = None
+            logger.debug("""Rerouting RPC request:
+                original url: {original_url}
+                new url.    : {new_url}
+                method: {method}
+                request json: {request_json}
+                """,
+                         original_url=orig_url,
+                         new_url=new_url,
+                         method=route.request.method,
+                         request_json=request_json)
+            try:
+                # continue_ mandates same protocol: https != http
+                # await route.continue_(url=new_url)
+                response = await route.fetch(url=new_url)
+                try:
+                    response_json = await response.json()
+                except Exception:
+                    response_json = None
+                logger.opt(colors=True).debug("""<bg #70A599>[RPC Response]</bg #70A599>:
+                    url: {url}
+                    method: {method}
+                    request json: {request_json}
+
+                    OK: {ok}
+
+                    response status: {response_status},
+                    response json: {response_json}
+                    """,
+                                              url=new_url,
+                                              request_json=request_json,
+                                              method=route.request.method,
+                                              ok=response.ok,
+                                              response_status=response.status,
+                                              response_json=response_json
+                                              )
+                await route.fulfill(response=response)
+            except Exception as e:
+                logger.exception(
+                    "Exception during routing RPC. Error: {e}", e=e)
+                await route.abort()
+            finally:
+                logger.debug("""Finished rerouting RPC request:
+                    original url: {original_url}
+                    new url.    : {new_url}
+                    method: {method}
+                    request json: {request_json}
+                    """,
+                             original_url=orig_url,
+                             new_url=new_url,
+                             method=route.request.method,
+                             request_json=request_json)
+
+        # Runs last.
+        # logger.debug(
+        #     'source browser context == self browser context: {bc}', bc=source['browserContext'] == self.browser_context)
+        await self.browser_context.route(remote_rpc_url, reroute_rpc)
+        logger.info(
+            f"Activated RPC reroute rule in new page context: from {remote_rpc_url} to {local_fork_rpc_url}")
 
     async def __aenter__(self):
         """
@@ -44,17 +135,26 @@ class UserAgent:
             bypass_csp=True
         )
 
-        # def mockMnemonic():
-        #     return mnemonic
-        # await self.browser_context.expose_function("__mockMnemonic", mockMnemonic)
         here = Path(__file__).parent
         fname = here / "mock_wallet/provider/provider.js"
         with open(Path(fname), "r") as file:
-            init_script = file.read().replace(
-                "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
+            init_script = file.read()
+
+        init_script = init_script.replace(
+            "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
+        remote_rpc_url = self.get_remote_rpc_url()
+        init_script = init_script.replace(
+            "'__GUARDIANUI_MOCK__RPC'", f"'{remote_rpc_url}'")
+        # chain = self.get_chain()
+        # init_script = init_script.replace(
+        #     "'__GUARDIANUI_MOCK__CHAIN_ID'", f"{chain.chain_id}")
+
+        await self.browser_context.expose_binding("__guardianui_hook_rpc_router",
+                                                  self.hook_rpc_router)
 
         # Pass story prerequisites to mock wallet via js init script
         await self.browser_context.add_init_script(init_script)
+        logger.info("Added browser context init script.")
 
         self.wallet_tx_snapshot = []
 
@@ -72,8 +172,25 @@ class UserAgent:
             sources=True,
             title='StoryCheck-Trace')
         self.page = await self.browser_context.new_page()
+
+        # remember pending tasks before this scope
+        self.previous_tasks = asyncio.all_tasks()
+
         logger.debug("Started playwright user agent.")
         return self
+
+    async def _cancel_pending_tasks(self):
+        """
+        Cancel in-scope pending tasks.
+        For example pending network requests initiated from within the web app.
+        """
+        all_tasks = asyncio.all_tasks()
+        inscope_tasks = all_tasks - self.previous_tasks
+        logger.debug('Cleaning up unfinished browser tasks: {tasks_n}',
+                     tasks_n=len(inscope_tasks))
+        for task in inscope_tasks:
+            task.cancel()
+        logger.debug('Browser tasks cleaned up.')
 
     async def __aexit__(self, exception_type, exception_value, exception_traceback):
         """
@@ -87,9 +204,11 @@ class UserAgent:
                          tb=exception_traceback)
         with open(self.results_dir / "tx_log_snapshot.json", "w") as outfile:
             json.dump(self.wallet_tx_snapshot, outfile)
-
-        await self.browser_context.tracing.stop(path=self.results_dir / "trace.zip")
-        await self.browser_context.close()
-        await self.browser.close()
-        await self.playwright.stop()
+        if exception_type != asyncio.exceptions.CancelledError:
+            await self.browser_context.tracing.stop(path=self.results_dir / "trace.zip")
+            await self.browser_context.close()
+            await self.browser.close()
+            await self.playwright.stop()
+        # wait for all pending async tasks to complete
+        # await self._cancel_pending_tasks()
         logger.debug("Stopped playwright.")
