@@ -42,4 +42,6 @@ jobs:
     #     pytest
     - name: Test with StoryCheck
       run: |
+        pwd
+        ls -al
         ./storycheck examples/sporosdao2.md
