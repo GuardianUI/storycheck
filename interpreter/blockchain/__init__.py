@@ -23,6 +23,8 @@ class LocalChain:
     # listen on all IP addresses assigned to this host
     ANVIL_HOST = '0.0.0.0'
     ANVIL_PORT = '8545'
+    # ANVIL_RPC = 'https://8545-guardianui-storycheck-admo6ifkslg.ws-us96b.gitpod.io/'
+    ANVIL_RPC = 'http://127.0.0.1:8545'
 
     RPC_URLs = {
         # ETH mainnet

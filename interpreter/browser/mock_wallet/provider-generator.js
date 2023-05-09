@@ -17,13 +17,19 @@ try {
   // in this browser context,
   // unless there is already one in place
   if (!window["ethereum"]) {
-    const ANVIL_URL = "http://127.0.0.1:8545";
 
+    await window.__guardianui_hook_rpc_router()
+    console.debug('Mock RPC router hooked.')
+
+    // const ANVIL_URL = "http://127.0.0.1:8545";
+
+    // const chainId = '__GUARDIANUI_MOCK__CHAIN_ID'
     // link to local foundry anvil fork of mainnet
-    const rpcProvider = await new JsonRpcProvider(ANVIL_URL) // , {chainId: 5});
+    const rpcUrl = '__GUARDIANUI_MOCK__RPC'
+    const rpcProvider = await new JsonRpcProvider(rpcUrl) // , chainId) // , {chainId: 5});
     console.debug('JsonRpcProvider waiting to become ready')
     const isRpcReady = await rpcProvider.ready
-    console.info('JsonRpcProvider ready: ', { isRpcReady })
+    console.info('JsonRpcProvider ready: ', { isRpcReady, rpcUrl })
     // create a new burn wallet for each test
 
     const pkey = '__GUARDIANUI_MOCK__PRIVATE_KEY'
@@ -66,6 +72,7 @@ try {
       console.info('User wallet updated balance is: ', { balance })
       console.debug('User mock wallet initialized.')
       window.localStorage.setItem('__GUARDIANUI_MOCK__IS_INITIALIZED', true)
+
     }
   } else {
     console.info('ETH mock user wallet already exist in this browser context. User account address: ', signer.address)

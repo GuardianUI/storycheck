@@ -48,7 +48,13 @@ export class MockWallet extends Eip1193Bridge {
       // to gasLimit which makes sensd transaction error.
       // This have taken the code from the super method for sendTransaction and altered
       // it slightly to make it work with the gas limit issues.
-      if (params && params.length && params[0].from && method === 'eth_sendTransaction') {
+      // handle legacy MetaMask method wallet_switchEthereumChain
+      // https://eips.ethereum.org/EIPS/eip-3326
+      // https://docs.metamask.io/wallet/reference/rpc-api/#wallet_switchethereumchain
+      if (method == 'wallet_switchEthereumChain') {
+        console.debug("MockWallet.send - ignoring Metamask legacy wallet_switchEthereumChain")
+        result = null
+      } else if (params && params.length && params[0].from && method === 'eth_sendTransaction') {
         writeTx = {method, params}
         // Hexlify will not take gas, must be gasLimit, set this property to be gasLimit
         params[0].gasLimit = params[0].gas
