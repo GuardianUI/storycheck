@@ -8,6 +8,7 @@ from loguru import logger
 from PIL import Image
 import os
 from pathlib import Path
+from slugify import slugify
 
 
 class UserStepInterpreter(StepInterpreter):
@@ -23,9 +24,10 @@ class UserStepInterpreter(StepInterpreter):
         # logger.debug(
         #     'self.user_agent.session: {session}', session=self.user_agent.session)
 
-    async def save_screenshot(self):
+    async def save_screenshot(self, prompt):
+        slug = slugify(prompt)
         path = self.results_dir / \
-            f'screenshots/{time.monotonic_ns()}_{self.__class__.__name__}.png'
+            f'screenshots/{time.monotonic_ns()}_{self.__class__.__name__}_{slug}.png'
         await self.user_agent.page.screenshot(path=path,
                                               animations='disabled',
                                               caret='initial')
@@ -46,7 +48,7 @@ class UserStepInterpreter(StepInterpreter):
             'Interpreting prompt: {prompt}', prompt=text)
         page = self.user_agent.page
         # make sure that page dynamic components are done rendering between steps
-        # logger.debug("Page rendering...")
+        await page.wait_for_load_state()
         # await page.wait_for_load_state("networkidle")
         # logger.debug("Page networkidle event received.")
         # await page.wait_for_load_state("domcontentloaded")
@@ -54,8 +56,7 @@ class UserStepInterpreter(StepInterpreter):
         # await page.wait_for_load_state("load")
         # logger.debug("Page load state event received.")
         await page.wait_for_timeout(2000)
-        logger.debug("Page done rendering.")
-        await self.save_screenshot()
+        await self.save_screenshot(text)
 
 
 class BrowseStep(UserStepInterpreter):
@@ -69,7 +70,6 @@ class BrowseStep(UserStepInterpreter):
         logger.debug('prompt: {prompt},\n link: {link}',
                      prompt=prompt, link=link)
         await page.goto(link)
-        await page.wait_for_load_state()
 
 
 class ClickStep(UserStepInterpreter):
@@ -107,9 +107,7 @@ class ClickStep(UserStepInterpreter):
         logger.debug("Mouse click at x:{x}, y:{y}",
                      x=click_point['x'], y=click_point['y'])
         await page.mouse.click(click_point['x'], click_point['y'])
-        # await page.wait_for_load_state("networkidle")
-        # # wait up to 2 seconds for the page to update as a result of click()
-        # await page.wait_for_timeout(2000)
+        page = self.user_agent.page
 
 
 class KBInputStep(UserStepInterpreter):
@@ -121,8 +119,6 @@ class KBInputStep(UserStepInterpreter):
         _, value = text.split(' ', 1)
         # add delay to type slower, like a user
         await page.keyboard.type(value, delay=100)
-        # no need for explicit snapshot save when tracing is on
-        # await self.save_screenshot()
 
 
 class ScrollStep(UserStepInterpreter):
@@ -139,7 +135,6 @@ class ScrollStep(UserStepInterpreter):
             await page.keyboard.press("PageDown")
         else:
             logger.warning('scroll {dir} not implemented', dir=direction)
-        # await page.wait_for_timeout(2000)
 
 
 class KeyPressStep(UserStepInterpreter):
@@ -150,7 +145,6 @@ class KeyPressStep(UserStepInterpreter):
         text = get_prompt_text(prompt)
         _, key = text.split(' ', 1)
         await page.keyboard.press(key)
-        # await page.wait_for_timeout(2000)
 
 
 class UserSteps(StorySection):

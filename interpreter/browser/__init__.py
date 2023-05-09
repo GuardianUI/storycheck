@@ -36,11 +36,18 @@ class UserAgent:
         chain = chain_step.chain
         return chain
 
-    async def hook_rpc_router(self):
-        # rewrite RPC requests to local evm / anvil fork
+    def get_local_fork_rpc_url(self):
         chain = self.get_chain()
-        remote_rpc_url = chain.rpc_url
-        local_fork_rpc_url = chain.ANVIL_RPC
+        return chain.ANVIL_RPC
+
+    def get_remote_rpc_url(self):
+        chain = self.get_chain()
+        return chain.rpc_url
+
+    async def hook_rpc_router(self, source):
+        # rewrite RPC requests to local evm / anvil fork
+        local_fork_rpc_url = self.get_local_fork_rpc_url()
+        remote_rpc_url = self.get_remote_rpc_url()
 
         async def reroute_rpc(route):
             orig_url = route.request.url
@@ -102,9 +109,11 @@ class UserAgent:
                              request_json=request_json)
 
         # Runs last.
-        await self.page.route(remote_rpc_url, reroute_rpc)
+        # logger.debug(
+        #     'source browser context == self browser context: {bc}', bc=source['browserContext'] == self.browser_context)
+        await self.browser_context.route(remote_rpc_url, reroute_rpc)
         logger.info(
-            f"Activated RPC reroute rule from {remote_rpc_url} to {local_fork_rpc_url}")
+            f"Activated RPC reroute rule in new page context: from {remote_rpc_url} to {local_fork_rpc_url}")
 
     async def __aenter__(self):
         """
@@ -133,6 +142,9 @@ class UserAgent:
 
         init_script = init_script.replace(
             "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
+        remote_rpc_url = self.get_remote_rpc_url()
+        init_script = init_script.replace(
+            "'__GUARDIANUI_MOCK__RPC'", f"'{remote_rpc_url}'")
         # chain = self.get_chain()
         # init_script = init_script.replace(
         #     "'__GUARDIANUI_MOCK__CHAIN_ID'", f"{chain.chain_id}")

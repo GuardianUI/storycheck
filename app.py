@@ -104,7 +104,7 @@ def amain() -> int:
     try:
         asyncio.run(main())
     except AssertionError as ae:
-        logger.warning(ae)
+        logger.error(ae)
         return 1
     except KeyboardInterrupt:
         logger.info('StoryCheck aborted manually.')
