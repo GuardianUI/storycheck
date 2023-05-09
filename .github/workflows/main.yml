@@ -31,6 +31,10 @@ jobs:
         playwright install-deps
         pip3 install flake8 pytest
         if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        # build mock wallet
+        cd interpreter/browser/mock_wallet
+        yarn install --non-interactive
+        yarn bundle
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
