@@ -28,10 +28,7 @@ jobs:
         set -exv
         # install forge anvil
         curl -L https://foundry.paradigm.xyz | bash
-    - name: Activate Foundry
-      run: |
-        set -exv
-        bash foundryup
+        ~/.foundry/bin/foundryup
     - name: Install Playwright
       run: |
         # install playwright
