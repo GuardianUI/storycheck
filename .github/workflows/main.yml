@@ -28,7 +28,6 @@ jobs:
         set -exv
         # install forge anvil
         curl -L https://foundry.paradigm.xyz | bash
-        /home/runner/.config/.foundry/bin/foundryup
     - name: Install Playwright
       run: |
         # install playwright
@@ -56,6 +55,9 @@ jobs:
     #     pytest
     - name: Test with StoryCheck
       run: |
+        set -exv
+        /home/runner/.config/.foundry/bin/foundryup
         pwd
         ls -al
+        ./storycheck.sh examples/sporosdao.md
         ./storycheck.sh examples/sporosdao2.md
