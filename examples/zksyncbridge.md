@@ -15,11 +15,6 @@
 1. Type 0.1
 1. Click on Deposit button above 5 minutes
 1. Press Shift
-1. Press Shift
-1. Press Shift
-1. Press Shift
-1. Press Shift
-1. Press Shift
 
 ## Expected Results
 
