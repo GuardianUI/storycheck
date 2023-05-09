@@ -109,7 +109,6 @@ The first time a test is run, all write transactions going through `window.ether
 
 Snapshot files with wallet transactions are saved to a `.snapshot.json` file in the same directory as the story file is stored.
 
-
 ```ml
 ├─ markdown — "Markdown parser. Outputs abstract syntax tree (AST) to interpreter."
 │
@@ -171,7 +170,7 @@ To run locally or in another dev environment, copy the steps from [`.gitpod.yml`
 StoryCheck can be run as a shell command or as a web service.
 
 ```bash
-$>storycheck --help
+$>storycheck.sh --help
 
 
 usage: StoryCheck by GuardianUI [-h] [-o OUTPUT_DIR] [--serve] storypath
@@ -188,6 +187,12 @@ options:
   --serve               Run as a web service. Defaults to "False".
 
 Copyright(c) guardianui.com 2023
+```
+
+For example to run a check of mystory.md, use:
+
+```sh
+./storycheck.sh mystory.md
 ```
 
 ### Command line exit codes

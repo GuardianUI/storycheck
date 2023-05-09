@@ -44,4 +44,4 @@ jobs:
       run: |
         pwd
         ls -al
-        ./storycheck examples/sporosdao2.md
+        ./storycheck.sh examples/sporosdao2.md
