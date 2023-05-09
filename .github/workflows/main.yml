@@ -28,7 +28,6 @@ jobs:
         set -exv
         # install forge anvil
         curl -L https://foundry.paradigm.xyz | bash
-        cat /home/runner/.bashrc
         /home/runner/.config/.foundry/bin/foundryup
     - name: Install Playwright
       run: |
