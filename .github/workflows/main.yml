@@ -56,7 +56,9 @@ jobs:
     - name: Test with StoryCheck
       run: |
         set -exv
-        /home/runner/.config/.foundry/bin/foundryup
+        exec bash
+        foundryup
+        anvil --help
         pwd
         ls -al
         ./storycheck.sh examples/sporosdao.md
