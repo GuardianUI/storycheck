@@ -24,10 +24,9 @@ jobs:
       with:
         python-version: "3.10"
     - name: Install Foundry
-      run: |
-        set -exv
-        # install forge anvil
-        curl -L https://foundry.paradigm.xyz | bash
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
     - name: Install Playwright
       run: |
         # install playwright
@@ -56,8 +55,6 @@ jobs:
     - name: Test with StoryCheck
       run: |
         set -exv
-        . ~/.bashrc
-        foundryup
         anvil --help
         pwd
         ls -al
