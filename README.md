@@ -189,6 +189,12 @@ options:
 Copyright(c) guardianui.com 2023
 ```
 
+For example to run a check of mystory.md, use:
+
+```sh
+./storycheck.sh mystory.md
+```
+
 ### Command line exit codes
 
 If all story checks / tests pass, the command will return with exit code `0`. Otherwise if any test fails or other errors occur, the exit code will be non-zero.
