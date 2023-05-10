@@ -63,3 +63,4 @@ jobs:
         ls -al
         ./storycheck.sh examples/sporosdao.md
         ./storycheck.sh examples/sporosdao2.md
+        ./storycheck.sh examples/zksyncbridge.md
