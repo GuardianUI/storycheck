@@ -68,6 +68,10 @@ By default each test starts with `10,000 ETH` in the mock user wallet (same as a
 
 In order to fund the mock wallet with other tokens (e.g. USDC, DAI, NFTs), the `User Steps` section of the story file should begin with prompts that initiate the funding via front end interactions (e.g. Uniswap flow for ETH/USDC swap).
 
+### Custom RPC
+
+Often Web3 Apps use front end libraries such as [wagmi.sh](https://wagmi.sh/react/getting-started) to access current chain state. When that is the case, the user story should include the exact RPC URL used by the front end as a prerequisite. That allows StoryCheck to intercept all calls directed to the RPC and reroute towards the local blockchain fork. This is important to ensure that the app reads and writes from/to the local chain fork.
+
 ### Example 1. Etheremum Mainnet test
 
 The following example sets up a local fork of ETH Mainnet starting from the latest block using a default RPC.
@@ -96,6 +100,16 @@ The following example sets up a local fork of Goerli Testnet starting from the g
 
 The format of user steps in this section resembles the HOWTO documentation of a web3 app. Teams may use the same markdown in their documentation (e.g. gitbook, notion, docusauros) and execute it with StoryCheck to make sure that the latest web app behavior is in sync with docs.
 
+## User Story Prompts
+
+Each step in a user story is classified as an action prompt from the following set:
+
+- `Browse` - prompts that start with `browse` and include a URL link to a web page are interpreted as browser navigation actions. For example `browse to https://app.uniswap.org`. For implementation details, see [Playwright goto](https://playwright.dev/python/docs/api/class-page#page-goto).
+- `Click` - prompts that start with `click`, `tap`, or `select` followed by a natural language referring expression of a UI element are interepreted as click actions with the corresponding UI element target. For example `click on Submit button at the bottom` or `select logo next to ETH option`. For implementation details see [Playwright mouse click](https://playwright.dev/python/docs/input#mouse-click) and [RefExp GPT](https://huggingface.co/spaces/GuardianUI/ui-refexp-click)
+- `Type` - prompts that start with the keyword `type`, `input` or `enter` (case insensitive) followed by a string are interpreted as a keyboard input action. For example `Type 1000` or `Type MyNewDAO`. For implementation details, see [Playwright type](https://playwright.dev/python/docs/api/class-keyboard#keyboard-type).
+- `Scroll` - prompts that start with `scroll` followed by `up` or `down` are interpreted respectively as `Press PageDown` and `Press PageUp`
+- `Press` - prompts that start with `press` followed by a keyboard key code (`F1` - `F12`, `Digit0` - `Digit9`, `KeyA` - `KeyZ`, `Backquote`, `Minus`, `Equal`, `Backslash`, `Backspace`, `Tab`, `Delete`, `Escape`, `ArrowDown`, `End`, `Enter`, `Home`, `Insert`, `PageDown`, `PageUp`, `ArrowRight`, `ArrowUp`) are interpreted as a single key press action. For further details, see [Playwright press](https://playwright.dev/python/docs/api/class-keyboard#keyboard-press).
+
 ## Expected Results Section
 
 Expected Results section currently implements a default transaction snapshot check similar to [jest snapshot matching](https://jestjs.io/docs/snapshot-testing).
@@ -107,22 +121,11 @@ The first time a test is run, all write transactions going through `window.ether
 
 ### Saved Snaphots
 
-Snapshot files with wallet transactions are saved to a `.snapshot.json` file in the same directory as the story file is stored.
+Snapshot files with wallet transactions are saved to a file with `.snapshot.json` extension in the same directory where the story markdown file is stored.
 
 ```ml
-├─ markdown — "Markdown parser. Outputs abstract syntax tree (AST) to interpreter."
-│
-├──┬─ interpreter — "Runtime engine which takes AST as input and executes it."
-│  │  │
-│  ├──┼──┬─ browser — "Playwright browser driver."
-│  │  │  │
-│  │  │  └─ mock_wallet — "JavaScript mock wallet provider injected in playwright page context as Metamask."
-│  │  │
-│  │  ├─ ai — "RefExp GPT AI model that predicst UI element location based on natural language referring expressions."
-│  │  │
-│  │  └─ blockchain — "Local EVM fork runtime via Foundry Anvil."
-│  │
-│  └─ examples — "Example user stories."
+├─ astory.md
+├─ astory.snapshot.json
 ```
 
 ## High level design
