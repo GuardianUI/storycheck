@@ -116,7 +116,7 @@ Expected Results section currently implements a default transaction snapshot che
 The first time a test is run, all write transactions going through `window.ethereum` are recorded and saved. Subsequent runs must match these write transactions. If there is a mismatch, then one of three changes took place in the UI under test:
 
 - Developers changed the frontend code in a significant way. This warrants a careful code review and update of the user stories.
-- There is malicious injected code that changes the behavior of the app. A big **red alert** is in order! App infrastructure is compromised: hosting providers, third party libaries, or build tools.
+- There is malicious injected code that changes the behavior of the app. A big **red alert** is in order! App infrastructure is compromised: hosting providers, third party libraries, or build tools.
 - There is a bug in some of the third party dependencies that affects UI behavior. Developer attention required to track down and fix the root cause.
 
 ### Saved Snaphots
@@ -190,6 +190,12 @@ options:
   --serve               Run as a web service. Defaults to "False".
 
 Copyright(c) guardianui.com 2023
+```
+
+For example to run a check of mystory.md, use:
+
+```sh
+./storycheck.sh mystory.md
 ```
 
 ### Command line exit codes
