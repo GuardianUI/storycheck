@@ -203,6 +203,10 @@ For example to run a check of mystory.md, use:
 If all story checks / tests pass, the command will return with exit code `0`. Otherwise if any test fails or other errors occur, the exit code will be non-zero.
 This makes it possible to use storycheck in shell scripts or CI scripts.
 
+## Using in CI scripts
+
+StoryCheck can be used as a test step in CI scripts. Here is an [example github action](https://github.com/GuardianUI/storycheck/blob/main/.github/workflows/main.yml) which sets up a storycheck environment and runs checks. If the storycheck step fails, the CI script fails as well.
+
 ## Output Directory Artifacts
 
 The output directory of a test run is either specified via `--output-dir` command line argument

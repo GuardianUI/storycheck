@@ -54,10 +54,5 @@ jobs:
     #     pytest
     - name: Test with StoryCheck
       run: |
-        set -exv
-        anvil --help
-        pwd
-        ls -al
         ./storycheck.sh examples/sporosdao.md
         ./storycheck.sh examples/sporosdao2.md
-        # ./storycheck.sh examples/zksyncbridge.md
