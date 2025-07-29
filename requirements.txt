@@ -1,5 +1,5 @@
 # File: requirements.txt
-torch
+torch --index-url https://download.pytorch.org/whl/cu127  # Specify CUDA 12.7 for GPU support
 Pillow
 gradio
 playwright
@@ -12,3 +12,5 @@ eth-account
 python-slugify
 vllm>=0.10.0  # High-throughput inference for multi-step VLM tests (CPU/GPU)
 pytest>=8.4.1  # Testing framework for running test suite
+bitsandbytes
+huggingface_hub
