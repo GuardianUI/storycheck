@@ -18,3 +18,6 @@ models/
 
 # project digest for LLM consumption
 digest.txt
+
+# workspace run results
+results

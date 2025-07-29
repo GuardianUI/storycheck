@@ -2,16 +2,24 @@
 import time
 import torch
 import logging
-from PIL import Image
+from PIL import Image, ImageDraw
 from vllm import LLM, SamplingParams
 from transformers import Qwen2_5_VLProcessor
 import vllm
 import re
 import json
 from huggingface_hub import hf_hub_download
-
 import math
 from typing import Tuple
+import numpy as np
+
+# Configure logging with console and file output
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
+file_handler = logging.FileHandler('results/test_vlm_inference.log')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+logger.addHandler(file_handler)
 
 def round_by_factor(number: int, factor: int) -> int:
     """Return the closest integer to number that is divisible by factor"""
@@ -21,7 +29,7 @@ def floor_by_factor(number: int, factor: int) -> int:
     """Return the largest integer less than or equal to number that is divisible by factor"""
     return math.floor(number / factor) * factor
 
-def smart_resize(height, width, factor=28, min_pixels=56 * 56, max_pixels=14 * 14 * 4 * 1280, max_long_side=8192):
+def smart_resize(height, width, factor=28, min_pixels=56 * 56, max_pixels=14 * 14 * 4 * 1280, max_long_side=8192, **kwargs):
     """Resize image while ensuring dimensions meet specific constraints."""
     if height < 2 or width < 2:
         raise ValueError(f"height:{height} or width:{width} must be larger than factor:{factor}")
@@ -39,11 +47,26 @@ def smart_resize(height, width, factor=28, min_pixels=56 * 56, max_pixels=14 * 1
         w_bar = floor_by_factor(width / beta, factor)
     return h_bar, w_bar
 
+def annotate_image(image: Image.Image, coordinates: list, output_path: str):
+    """Annotate image with red circles at given coordinates."""
+    draw = ImageDraw.Draw(image)
+    radius = 10  # Size of the marker
+    for coord in coordinates:
+        x, y = coord
+        logger.debug(f"Annotating coordinate: ({x}, {y})")
+        # Draw a red circle at the coordinate
+        draw.ellipse(
+            [(x - radius, y - radius), (x + radius, y + radius)],
+            fill="red",
+            outline="red",
+            width=2
+        )
+    image.save(output_path)
+    logger.info(f"Annotated image saved to {output_path}")
+
 # Model config
-#model_name = "xlangai/Jedi-3B-1080p"
 model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"  # Use hosted repo ID
 processor = Qwen2_5_VLProcessor.from_pretrained(model_name)
-max_pixels = 2700 * 28 * 28
 
 # Test parameters
 image_path = "tests/uniswap_screenshot.png"
@@ -82,7 +105,7 @@ def computer_use_function():
         }
     }
 
-print(f"vLLM version: {vllm.__version__}")
+logger.info(f"vLLM version: {vllm.__version__}")
 
 def init_vllm_engine(batch_size=4):
     global llm, sampling_params
@@ -96,23 +119,34 @@ def init_vllm_engine(batch_size=4):
                 max_num_seqs=batch_size
             )
             sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
-            print("vLLM engine initialized.")
+            logger.debug("vLLM engine initialized.")
         except Exception as e:
-            raise Exception(f"vLLM initialization failed: {e}")
+            logger.error(f"vLLM initialization failed: {e}")
+            raise
     return llm, sampling_params
 
 def parse_coordinates(response):
+    logger.debug(f"Parsing response: {response}")
     match = re.search(r"<tool_call>(.*?)</tool_call>", response, re.DOTALL)
     if not match:
-        raise ValueError("No <tool_call> block found in response.")
+        # Fallback: assume direct "x,y" output if tool call fails
+        match_xy = re.search(r"(\d+\.?\d*),\s*(\d+\.?\d*)", response)
+        if match_xy:
+            logger.debug(f"Fallback: Found direct coordinates: {match_xy.group(0)}")
+            return [float(match_xy.group(1)), float(match_xy.group(2))]
+        logger.error("No <tool_call> or direct coordinates found in response.")
+        raise ValueError("No <tool_call> or direct coordinates found in response.")
     try:
         action = json.loads(match.group(1))
         action_name = action["name"]
         action_type = action["arguments"]["action"]
         if action_name == "computer_use" and action_type in ("mouse_move", "left_click"):
+            logger.debug(f"Parsed coordinates: {action['arguments']['coordinate']}")
             return action["arguments"]["coordinate"]
     except (json.JSONDecodeError, KeyError) as e:
-        print(f"Error parsing coordinates: {e}\nResponse: {response}")
+        logger.error(f"Error parsing coordinates: {e}\nResponse: {response}")
+        raise
+    logger.error("Invalid tool call format.")
     return None
 
 def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
@@ -121,7 +155,7 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
     # Adjust for debug mode
     if debug:
         batch_size = 1
-        print("Debug mode: Processing single step with verbose logging.")
+        logger.debug("Debug mode: Processing single step with verbose logging.")
     
     # Initialize persistent engine
     llm, sampling_params = init_vllm_engine(batch_size)
@@ -130,75 +164,80 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
     image = Image.open(image_path).convert("RGB")
     resized_height, resized_width = smart_resize(image.height, image.width, factor=28, min_pixels=56 * 56, max_pixels=14 * 14 * 4 * 1280, max_long_side=8192)
     resized_image = image.resize((resized_width, resized_height), Image.Resampling.LANCZOS)
+    logger.debug(f"Image resized to {resized_width}x{resized_height}")
     
     if isinstance(expressions, str):
         expressions = [expressions]
     images = [resized_image] * len(expressions)
     tool_descs = "\n".join([json.dumps(computer_use_function(), ensure_ascii=False)])
-    messages = [
-        (
-            {
-                "role": "system",
-                "content": [
-                    {"type": "text", "text": FN_CALL_TEMPLATE.format(tool_descs=tool_descs)}
-                ]
-            },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": img},
-                    {"type": "text", "text": exp}
-                ]
-            }
-        )
-        for exp, img in zip(expressions, images)
+    messages_list = [
+        [
+            {"role": "system", "content": [{"type": "text", "text": FN_CALL_TEMPLATE.format(tool_descs=tool_descs)}]},
+            {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": exp}]}
+        ]
+        for exp in expressions
     ]
     
-    # Format inputs
-    chat_templates = [processor.apply_chat_template(m[0], tokenize=False, add_generation_prompt=True) + processor.apply_chat_template(m[1], tokenize=False, add_generation_prompt=True) for m in messages]
-    if debug:
-        print(f"Input templates: {chat_templates}")
-        logging.basicConfig(level=logging.DEBUG)
+    # Format and tokenize inputs
+    inputs = []
+    for messages, img in zip(messages_list, images):
+        chat_template = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        token_ids = processor.tokenizer(chat_template, return_tensors="pt")['input_ids'][0].tolist()
+        inputs.append({
+            "prompt_token_ids": token_ids,
+            "multi_modal_data": {"image": img}
+        })
+        logger.debug(f"Input prompt for expression '{messages[-1]['content'][-1]['text']}': {chat_template}")
     
-    # Prepare batched inputs for multimodal generate
-    inputs = [{"prompt": template} for template in chat_templates]
-    if debug:
-        logging.debug(f"Generation inputs: {inputs}")
-        logging.debug(f"Sampling params: {sampling_params}")
-    outputs = llm.generate(inputs, sampling_params=sampling_params)
+    # Run batched inference
+    try:
+        outputs = llm.generate(inputs, sampling_params=sampling_params)
+    except Exception as e:
+        logger.error(f"Inference failed: {e}")
+        raise
+    
     results = []
-    for o in outputs:
+    valid_coordinates = []
+    for o, exp in zip(outputs, expressions):
         text = o.outputs[0].text.strip()
-        if debug:
-            print(f"Raw model output: {text}")
-            logging.debug(f"Full output object: {o}")
-            logging.debug(f"Output text length: {len(text)}")
-        coords = parse_coordinates(text)
-        if coords:
-            x, y = coords
-            x = x * image.width / resized_width
-            y = y * image.height / resized_height
-            results.append(f"{int(x)},{int(y)}")
-        else:
+        logger.debug(f"Raw model output for '{exp}': {text}")
+        try:
+            coords = parse_coordinates(text)
+            if coords:
+                x, y = coords
+                x = x * image.width / resized_width
+                y = y * image.height / resized_height
+                results.append(f"{int(x)},{int(y)}")
+                valid_coordinates.append((int(x), int(y)))
+            else:
+                results.append("invalid")
+        except Exception as e:
+            logger.error(f"Failed to process output for '{exp}': {e}")
             results.append("invalid")
     
+    # Annotate image with valid coordinates
+    if valid_coordinates:
+        annotate_image(image.copy(), valid_coordinates, "results/annotated_image.png")
+    
     end_time = time.time()
-    print(f"Inference time for {len(expressions)} prompts: {end_time - start_time:.2f}s")
-    print(f"Throughput: {len(expressions) / (end_time - start_time):.2f} inferences/sec")
-    print(f"Predicted coords (first result): {results[0]}")
+    logger.debug(f"Inference time for {len(expressions)} prompts: {end_time - start_time:.2f}s")
+    logger.debug(f"Throughput: {len(expressions) / (end_time - start_time):.2f} inferences/sec")
+    logger.debug(f"Predicted coords (first result): {results[0]}")
     if debug and results:
-        print(f"Full results: {results}")
-    return results
+        logger.debug(f"Full results: {results}")
+    return results, image
 
 def test_vlm_inference():
     # Test the inference function with a dummy image and expression
-    results = benchmark_inference(image_path, expressions, batch_size=len(expressions), debug=True)
-    for res in results:
-        assert res != "invalid", "Invalid coordinate output"
+    results, image = benchmark_inference(image_path, expressions, batch_size=len(expressions), debug=True)
+    for res, exp in zip(results, expressions):
+        if res == "invalid":
+            logger.error(f"Invalid coordinate output for expression: {exp}")
+            assert res != "invalid", f"Invalid coordinate output for '{exp}'"
         coords = res.split(",")
-        assert len(coords) == 2, "Expected x,y coordinates"
+        assert len(coords) == 2, f"Expected x,y coordinates for '{exp}'"
         x, y = map(int, coords)
-        assert 0 <= x <= image.width and 0 <= y <= image.height, "Coordinates must be in image bounds"
+        assert 0 <= x <= image.width and 0 <= y <= image.height, f"Coordinates ({x}, {y}) for '{exp}' must be in image bounds ({image.width}, {image.height})"
 
 if __name__ == "__main__":
     test_vlm_inference()
