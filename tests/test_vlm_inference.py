@@ -1,4 +1,3 @@
-# File Path: tests/test_vlm_inference.py
 import time
 import torch
 import logging
@@ -20,6 +19,9 @@ file_handler = logging.FileHandler('results/test_vlm_inference.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 logger.addHandler(file_handler)
+
+# Counter for llm.generate calls
+generate_call_count = 0
 
 def round_by_factor(number: int, factor: int) -> int:
     """Return the closest integer to number that is divisible by factor"""
@@ -53,7 +55,7 @@ def annotate_image(image: Image.Image, coordinates: list, output_path: str):
     radius = 10  # Size of the marker
     for coord in coordinates:
         x, y = coord
-        logger.debug(f"Annotating coordinate: ({x}, {y})")
+        logger.debug(f"Annotating coordinate on original image: ({x}, {y})")
         # Draw a red circle at the coordinate
         draw.ellipse(
             [(x - radius, y - radius), (x + radius, y + radius)],
@@ -141,7 +143,7 @@ def parse_coordinates(response):
         action_name = action["name"]
         action_type = action["arguments"]["action"]
         if action_name == "computer_use" and action_type in ("mouse_move", "left_click"):
-            logger.debug(f"Parsed coordinates: {action['arguments']['coordinate']}")
+            logger.debug(f"Raw coordinates (resized image): {action['arguments']['coordinate']}")
             return action["arguments"]["coordinate"]
     except (json.JSONDecodeError, KeyError) as e:
         logger.error(f"Error parsing coordinates: {e}\nResponse: {response}")
@@ -150,6 +152,7 @@ def parse_coordinates(response):
     return None
 
 def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
+    global generate_call_count
     start_time = time.time()
     
     # Adjust for debug mode
@@ -164,7 +167,9 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
     image = Image.open(image_path).convert("RGB")
     resized_height, resized_width = smart_resize(image.height, image.width, factor=28, min_pixels=56 * 56, max_pixels=14 * 14 * 4 * 1280, max_long_side=8192)
     resized_image = image.resize((resized_width, resized_height), Image.Resampling.LANCZOS)
-    logger.debug(f"Image resized to {resized_width}x{resized_height}")
+    scale_x = image.width / resized_width
+    scale_y = image.height / resized_height
+    logger.debug(f"Image loaded: original {image.width}x{image.height}, resized to {resized_width}x{resized_height} (scaling factors: x={scale_x:.3f}, y={scale_y:.3f})")
     
     if isinstance(expressions, str):
         expressions = [expressions]
@@ -191,7 +196,10 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
     
     # Run batched inference
     try:
+        generate_call_count += 1
+        logger.debug(f"Starting llm.generate call #{generate_call_count}")
         outputs = llm.generate(inputs, sampling_params=sampling_params)
+        logger.debug(f"Completed llm.generate call #{generate_call_count}")
     except Exception as e:
         logger.error(f"Inference failed: {e}")
         raise
@@ -205,10 +213,11 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
             coords = parse_coordinates(text)
             if coords:
                 x, y = coords
-                x = x * image.width / resized_width
-                y = y * image.height / resized_height
-                results.append(f"{int(x)},{int(y)}")
-                valid_coordinates.append((int(x), int(y)))
+                scaled_x = x * image.width / resized_width
+                scaled_y = y * image.height / resized_height
+                logger.debug(f"Scaled coordinates for '{exp}' (original image {image.width}x{image.height}): ({int(scaled_x)}, {int(scaled_y)})")
+                results.append(f"{int(scaled_x)},{int(scaled_y)}")
+                valid_coordinates.append((int(scaled_x), int(scaled_y)))
             else:
                 results.append("invalid")
         except Exception as e:
@@ -228,9 +237,17 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
     return results, image
 
 def test_vlm_inference():
+    # Expected coordinates for each expression (scaled to original image)
+    expected_coords = [
+        (1075, 119),  # click the connect button
+        (704, 586),   # click 'Select Token' dropdown
+        (719, 451)    # click on ETH dropdown
+    ]
+    tolerance = 10  # Pixel tolerance for coordinate variations
+    
     # Test the inference function with a dummy image and expression
     results, image = benchmark_inference(image_path, expressions, batch_size=len(expressions), debug=True)
-    for res, exp in zip(results, expressions):
+    for res, exp, expected in zip(results, expressions, expected_coords):
         if res == "invalid":
             logger.error(f"Invalid coordinate output for expression: {exp}")
             assert res != "invalid", f"Invalid coordinate output for '{exp}'"
@@ -238,6 +255,11 @@ def test_vlm_inference():
         assert len(coords) == 2, f"Expected x,y coordinates for '{exp}'"
         x, y = map(int, coords)
         assert 0 <= x <= image.width and 0 <= y <= image.height, f"Coordinates ({x}, {y}) for '{exp}' must be in image bounds ({image.width}, {image.height})"
+        # Check if predicted coordinates are within tolerance
+        expected_x, expected_y = expected
+        distance = np.sqrt((x - expected_x)**2 + (y - expected_y)**2)
+        logger.debug(f"Coordinate check for '{exp}': predicted ({x}, {y}), expected ({expected_x}, {expected_y}), distance {distance:.2f} pixels")
+        assert distance <= tolerance, f"Coordinates ({x}, {y}) for '{exp}' deviate too far from expected ({expected_x}, {expected_y}) by {distance:.2f} pixels"
 
 if __name__ == "__main__":
     test_vlm_inference()
