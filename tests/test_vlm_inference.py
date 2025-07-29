@@ -2,7 +2,9 @@
 import time
 import torch
 from PIL import Image
+
 from vllm import LLM, SamplingParams
+import vllm
 from transformers import AutoProcessor  # Only for chat template formatting
 
 # Model config
@@ -12,12 +14,12 @@ processor = AutoProcessor.from_pretrained(model_name)
 
 # Test parameters
 image_path = "tests/uniswap_screenshot.png"
-expression = "click the connect button"
-
+expressions = ["click the connect button", "click 'Select Token' dropdown", "click on 'Trade' menu item"]
 
 # Persistent vLLM engine (load once)
 llm = None
 sampling_params = None
+print(f"vLLM version: {vllm.__version__}")
 
 def init_vllm_engine(batch_size=4):
     global llm, sampling_params
@@ -26,11 +28,11 @@ def init_vllm_engine(batch_size=4):
             llm = LLM(
                 model=model_name,
                 quantization="bitsandbytes" if torch.cuda.is_available() else None,
-                max_model_len=512,
+                max_model_len=4096,
                 enforce_eager=True,
                 max_num_seqs=batch_size
             )
-            sampling_params = SamplingParams(temperature=0.0, max_tokens=20)
+            sampling_params = SamplingParams(temperature=0.0, max_tokens=50, seed=0)            
             print("vLLM engine initialized.")
         except Exception as e:
             raise Exception(f"vLLM initialization failed: {e}")
@@ -62,8 +64,25 @@ def benchmark_inference(image_path, expression, batch_size=4, debug=False):
         print(f"Input templates: {chat_templates[:1]}")
     
     # Run inference
-    outputs = llm.generate(chat_templates, sampling_params=sampling_params)
-    results = [o.outputs[0].text.strip() for o in outputs]  # e.g., ["0.42,0.67", ...]
+    # Prepare batched inputs for multimodal generate
+    inputs = [
+        {"prompt": template, "multi_modal_data": {"image": img}} for template, img in zip(chat_templates, images)
+    ]
+    outputs = llm.generate(inputs, sampling_params=sampling_params)
+    results = []
+    for o, img in zip(outputs, images):
+        # Parse potentially malformed coords like "(1057.0, 114.0," or "1057.0, 114.0"
+        text = o.outputs[0].text.strip()
+        import re
+        coords = re.findall(r'\d+\.?\d*', text)  # Extract floats/integers        
+        if len(coords) >= 2:
+            x, y = float(coords[0]), float(coords[1])
+            # Normalize pixel coords to [0-1] using image dimensions
+            img_width, img_height = img.size
+            x, y = x / img_width, y / img_height
+            results.append(f"{x:.3f},{y:.3f}")
+        else:
+            results.append("invalid")    
     
     end_time = time.time()
     print(f"Inference time for {batch_size} steps: {end_time - start_time:.2f}s")
@@ -75,13 +94,17 @@ def benchmark_inference(image_path, expression, batch_size=4, debug=False):
 
 def test_vlm_inference():
     # Test the inference function with a dummy image and expression
-    results = benchmark_inference(image_path, expression, batch_size=1, debug=True)
-    assert len(results) == 1, "Expected one result"
-    coords = results[0].split(",")
-    assert len(coords) == 2, "Expected x,y coordinates"
-    x, y = float(coords[0]), float(coords[1])
-    assert 0 <= x <= 1 and 0 <= y <= 1, "Coordinates must be in [0-1] range"
+    for expression in expressions:
+        print(f"Testing expression: '{expression}'")
+        results = benchmark_inference(image_path, expression, batch_size=1, debug=True)
+        assert len(results) == 1, "Expected one result"
+        coords = results[0].split(",")
+        assert len(coords) == 2, "Expected x,y coordinates"
+        assert coords[0] != "invalid", "Invalid coordinate output"
+        x, y = float(coords[0]), float(coords[1])
+        print(f"Test coordinates: x={x}, y={y}")
+        assert 0 <= x <= 1 and 0 <= y <= 1, "Coordinates must be in [0-1] range"
 
 if __name__ == "__main__":
     # Test with placeholder screenshot, debug mode for single step
-    benchmark_inference(image_path, expression, batch_size=4, debug=True)
+    benchmark_inference(image_path, expressions[0], batch_size=4, debug=True)
