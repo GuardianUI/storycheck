@@ -1,4 +1,4 @@
-transformers
+# File: requirements.txt
 torch
 Pillow
 gradio
@@ -10,3 +10,5 @@ mistune
 aiohttp
 eth-account
 python-slugify
+vllm>=0.10.0  # High-throughput inference for multi-step VLM tests (CPU/GPU)
+pytest>=8.4.1  # Testing framework for running test suite

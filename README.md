@@ -162,11 +162,13 @@ flowchart TD
 
 ## How to Build and Run
 
-This project is pre-configured to build and run via Gitpod.
+### Local Setup with uv (Recommended for Fast Environment Management)
+To set up the environment locally using `uv` (a fast Python package manager), run the following script. This creates a virtual environment with Python 3.10, installs dependencies from `requirements.txt`, sets up Playwright, and builds the mock wallet.
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/GuardianUI/storycheck)
-
-To run locally or in another dev environment, copy the steps from [`.gitpod.yml`](.gitpod.yml)
+```bash
+chmod +x setup_env.sh
+./setup_env.sh
+source .venv/bin/activate
 
 ### Command line arguments
 
