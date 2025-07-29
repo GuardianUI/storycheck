@@ -6,7 +6,8 @@ from vllm import LLM, SamplingParams
 from transformers import AutoProcessor  # Only for chat template formatting
 
 # Model config
-model_name = "xlangai/Jedi-3B-1080p"
+#model_name = "xlangai/Jedi-3B-1080p"
+model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"  # Use hosted repo ID (files are in root)
 processor = AutoProcessor.from_pretrained(model_name)
 
 # Test parameters
@@ -24,7 +25,7 @@ def init_vllm_engine(batch_size=4):
         try:
             llm = LLM(
                 model=model_name,
-                quantization="awq" if torch.cuda.is_available() else None,
+                quantization="bitsandbytes" if torch.cuda.is_available() else None,
                 max_model_len=512,
                 enforce_eager=True,
                 max_num_seqs=batch_size

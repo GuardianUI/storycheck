@@ -1,5 +1,5 @@
 # File: requirements.txt
-torch --index-url https://download.pytorch.org/whl/cu127  # Specify CUDA 12.7 for GPU support
+torch
 Pillow
 gradio
 playwright
