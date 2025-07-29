@@ -11,6 +11,7 @@ from huggingface_hub import hf_hub_download
 import math
 from typing import Tuple
 import numpy as np
+import os
 
 # Configure logging with console and file output
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
@@ -59,7 +60,7 @@ def annotate_image(image: Image.Image, coordinates: list, output_path: str):
         # Draw a red circle at the coordinate
         draw.ellipse(
             [(x - radius, y - radius), (x + radius, y + radius)],
-            fill="red",
+            fill=None,
             outline="red",
             width=2
         )
@@ -68,11 +69,22 @@ def annotate_image(image: Image.Image, coordinates: list, output_path: str):
 
 # Model config
 model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"  # Use hosted repo ID
-processor = Qwen2_5_VLProcessor.from_pretrained(model_name)
+cache_dir = os.path.expanduser("~/.cache/huggingface/hub")
+processor = None
 
 # Test parameters
 image_path = "tests/uniswap_screenshot.png"
-expressions = ["click the connect button", "click 'Select Token' dropdown", "click on ETH dropdown"]
+expressions = [
+    "click the connect button",
+    "click 'Select Token' dropdown",
+    "click on ETH dropdown",
+    "open Trade menu",
+    "Click on arrow below 'Scroll to learn'",
+    "Click on Get started button",
+    "Click on Sell text field",
+    "Click on Buy text field",
+    "type weth in search field"
+]
 
 # Persistent vLLM engine (load once)
 llm = None
@@ -99,10 +111,13 @@ def computer_use_function():
             "description": "Use a mouse and keyboard to interact with a computer.",
             "parameters": {
                 "properties": {
-                    "action": {"type": "string", "enum": ["mouse_move", "left_click"]},
-                    "coordinate": {"type": "array", "items": {"type": "number"}}
+                    "action": {"type": "string", "enum": ["mouse_move", "left_click", "type", "key"]},
+                    "coordinate": {"type": "array", "items": {"type": "number"}},
+                    "text": {"type": "string"},
+                    "keys": {"type": "array", "items": {"type": "string"}}
                 },
-                "required": ["action", "coordinate"]
+                "required": ["action"],
+                "additionalProperties": False
             }
         }
     }
@@ -110,27 +125,40 @@ def computer_use_function():
 logger.info(f"vLLM version: {vllm.__version__}")
 
 def init_vllm_engine(batch_size=4):
-    global llm, sampling_params
-    if llm is None:
+    global llm, sampling_params, processor
+    if llm is None or processor is None:
         try:
+            # Load processor with local cache
+            model_cache_path = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
+            source = 'cache' if os.path.exists(model_cache_path) else 'Hugging Face'
+            processor = Qwen2_5_VLProcessor.from_pretrained(
+                model_name,
+                cache_dir=cache_dir,
+                local_files_only=os.path.exists(model_cache_path),
+                force_download=False
+            )
+            logger.debug(f"Processor loaded from {source}")
+            
+            # Load vLLM model with local cache
             llm = LLM(
                 model=model_name,
                 quantization="bitsandbytes" if torch.cuda.is_available() else None,
                 max_model_len=4096,
                 enforce_eager=True,
-                max_num_seqs=batch_size
+                max_num_seqs=batch_size,
+                download_dir=cache_dir
             )
             sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
-            logger.debug("vLLM engine initialized.")
+            logger.debug(f"vLLM engine initialized from {source}")
         except Exception as e:
-            logger.error(f"vLLM initialization failed: {e}")
+            logger.error(f"vLLM or processor initialization failed: {e}")
             raise
     return llm, sampling_params
 
 def parse_coordinates(response):
     logger.debug(f"Parsing response: {response}")
-    match = re.search(r"<tool_call>(.*?)</tool_call>", response, re.DOTALL)
-    if not match:
+    matches = re.findall(r"<tool_call>(.*?)</tool_call>", response, re.DOTALL)
+    if not matches:
         # Fallback: assume direct "x,y" output if tool call fails
         match_xy = re.search(r"(\d+\.?\d*),\s*(\d+\.?\d*)", response)
         if match_xy:
@@ -138,17 +166,21 @@ def parse_coordinates(response):
             return [float(match_xy.group(1)), float(match_xy.group(2))]
         logger.error("No <tool_call> or direct coordinates found in response.")
         raise ValueError("No <tool_call> or direct coordinates found in response.")
-    try:
-        action = json.loads(match.group(1))
-        action_name = action["name"]
-        action_type = action["arguments"]["action"]
-        if action_name == "computer_use" and action_type in ("mouse_move", "left_click"):
-            logger.debug(f"Raw coordinates (resized image): {action['arguments']['coordinate']}")
-            return action["arguments"]["coordinate"]
-    except (json.JSONDecodeError, KeyError) as e:
-        logger.error(f"Error parsing coordinates: {e}\nResponse: {response}")
-        raise
-    logger.error("Invalid tool call format.")
+    
+    for match in matches:
+        try:
+            action = json.loads(match)
+            action_name = action["name"]
+            action_type = action["arguments"].get("action")
+            if action_name == "computer_use" and action_type == "left_click":
+                coords = action["arguments"].get("coordinate")
+                if coords:
+                    logger.debug(f"Raw coordinates (resized image): {coords}")
+                    return coords
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.error(f"Error parsing tool call: {e}\nTool call: {match}")
+            continue
+    logger.error("No valid left_click tool call found in response.")
     return None
 
 def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
@@ -237,11 +269,17 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
     return results, image
 
 def test_vlm_inference():
-    # Expected coordinates for each expression (scaled to original image)
+    # Expected coordinates for each expression (scaled to original image 1126x950)
     expected_coords = [
         (1075, 119),  # click the connect button
         (704, 586),   # click 'Select Token' dropdown
-        (719, 451)    # click on ETH dropdown
+        (719, 451),   # click on ETH dropdown
+        (104, 125),   # open Trade menu
+        (559, 884),   # Click on arrow below 'Scroll to learn'
+        (559, 681),   # Click on Get started button
+        (499, 451),   # Click on Sell text field
+        (555, 587),   # Click on Buy text field
+        (575, 125)    # type weth in search field
     ]
     tolerance = 10  # Pixel tolerance for coordinate variations
     
