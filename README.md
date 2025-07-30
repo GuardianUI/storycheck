@@ -2,11 +2,11 @@
 
 StoryCheck for Web3 apps based on Ethereum. Experimental app testing playground as well as an API served via [Gradio](https://github.com/gradio-app/gradio) on port `7860`.
 
-It takes as input markdown formatted user stories with steps written in natural language.
-Then it parses the text and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user.
-Uses [RefExp GPT](https://huggingface.co/spaces/GuardianUI/ui-refexp-click) to predict UI element coordinates given a referring expression.
+StoryCheck promotes smooth collaboration between dApp developers, testers, document writers, product managers and support teams by enabling use of natural language for executable and verifiable user stories. StoryCheck reduces the need for expertise in low level e2e test frameworks such as Synpress, Cypress, Playwright, Selenium, etc.
 
-Note: Storycheck is currently most reliable for testing the UI of smartphones and tablets.
+StoryCheck takes as input markdown formatted user stories with steps written in natural language.
+Then it parses the text and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user.
+Uses SOTA VLM to understand and execute UI instructions.
 
 ## Walkthrough Video
 
@@ -128,7 +128,15 @@ Snapshot files with wallet transactions are saved to a file with `.snapshot.json
 ├─ astory.snapshot.json
 ```
 
-## High level design
+## Overview and Architecture
+
+StoryCheck has the following high level architecture:
+
+1. StoryCheck users rely on frontier models (Grok, Gemini, ChatGPT, Claude) and their favorite IDE to prepare user docs in a markdown format that is easy to parse and execute via steps 2-3 below.
+2. StoryCheck uses SOTA VLM (Jedi-3B quantized as of July 2025) for UI component referencing and action expressions ("Click on the Connect button", "Type 20 in the Sell text field", "Enter rETH in search bar"). 
+  - This choice of AI model strikes a balance between performance (1-2 sec per expression on laptop with GPU / Macbook M3/M4 and 3-5 sec on CPU, e.g. github actions CI environment).
+3. StoryCheck uses fast and simple interpreter to iterate over markdown formatted steps of UI instructions and pass on to VLM for translation to Playwright function calls. 
+  - We could use an LLM to parse a whole user story, but it would add significant runtime overhead. We are looking to strike a balance between natural language flexibility with high performance test execution in development and CI workflows.
 
 ```mermaid
 flowchart TD
@@ -139,6 +147,7 @@ flowchart TD
     D -->|sign tx| F[Mock Wallet / EIP1193Bridge]
     F -->|blokchain tx| G[Local EVM Fork / anvil]
 ```
+
 
 ## Directory structure
 
