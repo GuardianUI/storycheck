@@ -1,6 +1,8 @@
 from PIL import Image, ImageDraw
+from pathlib import Path
 import time
 import logging
+import os
 
 # Configure logging with console and file output
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
@@ -9,6 +11,8 @@ file_handler = logging.FileHandler('results/test_vlm_inference.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 logger.addHandler(file_handler)
+results_dir = Path(os.environ.get("GUARDIANUI_RESULTS_PATH", "results/"))
+results_dir.mkdir(parents=True, exist_ok=True)
 
 # Counter for inference calls
 inference_call_count = 0
