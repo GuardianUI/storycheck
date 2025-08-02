@@ -1,60 +1,40 @@
-# File: .github/workflows/main.yml
 name: StoryCheck CI
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [main, dev]
   pull_request:
-    branches: [ "main", "dev" ]
-
-permissions:
-  contents: read
+    branches: [main, dev]
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install uv
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+    - uses: actions/checkout@v4
 
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: "3.10"
-    - name: Install Foundry
-      uses: foundry-rs/foundry-toolchain@v1
+        python-version: '3.10'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
       with:
-        version: nightly
-    - name: Install Playwright
+        version: '0.8.4'
+
+    - name: Install Python deps with uv
       run: |
-        # install playwright
-        python -m pip install --upgrade pip
-        pip3 install playwright
-        playwright install
-        playwright install-deps
-    - name: Install other dependencies
-      run: |
-        # Install Python deps with uv
-        uv pip install flake8 pytest -r requirements.txt
+        uv pip install --system flake8 pytest -r requirements.txt
         # build mock wallet
         cd interpreter/browser/mock_wallet
         yarn install --non-interactive
         yarn bundle
-    # - name: Lint with flake8
-    #   run: |
-    #     # stop the build if there are Python syntax errors or undefined names
-    #     flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-    #     # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-    #     # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
+
+    - name: Lint with flake8
+      run: |
+        flake8 . --max-line-length=120 --extend-ignore=E203
+
+    - name: Run tests
       run: |
         pytest
-    # - name: Test with StoryCheck
-    #   run: |
-    #     ./storycheck.sh examples/sporosdao.md
-    #     ./storycheck.sh examples/sporosdao2.md
