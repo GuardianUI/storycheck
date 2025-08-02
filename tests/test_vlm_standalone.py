@@ -1,24 +1,10 @@
 from PIL import Image, ImageDraw
 import time
-import logging
-from pathlib import Path
-import os
-
-# Configure logging with console and file output
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
-logger = logging.getLogger(__name__)
-results_dir = Path(os.environ.get("GUARDIANUI_RESULTS_PATH", "results/"))
-results_dir.mkdir(parents=True, exist_ok=True)
-
-file_handler = logging.FileHandler(f'{results_dir}/test_vlm_inference.log')
-file_handler.setLevel(logging.DEBUG)
-file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
-logger.addHandler(file_handler)
 
 # Counter for inference calls
 inference_call_count = 0
 
-def annotate_image(image: Image.Image, coordinates: list, output_path: str):
+def annotate_image(image: Image.Image, coordinates: list, output_path: str, logger) -> None:
     """Annotate image with red circles at given coordinates."""
     draw = ImageDraw.Draw(image)
     radius = 10 # Size of the marker
@@ -49,7 +35,7 @@ expressions = [
     "type weth in search field"
 ]
 
-def benchmark_inference(image_path, expressions, local_refexp, debug=False):
+def benchmark_inference(image_path, expressions, local_refexp, debug=False, logger=None, results_dir=None):
     global inference_call_count
     start_time = time.time()
     
@@ -76,7 +62,7 @@ def benchmark_inference(image_path, expressions, local_refexp, debug=False):
     
     # Annotate image with valid coordinates
     if valid_coordinates:
-        annotate_image(image.copy(), valid_coordinates, f"{results_dir}/annotated_image.png")
+        annotate_image(image.copy(), valid_coordinates, f"{results_dir}/annotated_image.png", logger=logger)
     
     end_time = time.time()
     logger.debug(f"Inference time for {len(expressions)} prompts: {end_time - start_time:.2f}s")
@@ -87,7 +73,7 @@ def benchmark_inference(image_path, expressions, local_refexp, debug=False):
         logger.debug(f"Full results: {results}")
     return results, image
 
-def test_vlm_inference(shared_local_refexp):
+def test_vlm_inference(shared_local_refexp, results_dir, logger):
     # Expected coordinates for each expression (scaled to original image 1126x950)
     expected_coords = [
         (1075, 119), # click the connect button
@@ -103,7 +89,7 @@ def test_vlm_inference(shared_local_refexp):
     tolerance = 10 # Pixel tolerance for coordinate variations
    
     # Test the inference function with a dummy image and expression
-    results, image = benchmark_inference(image_path, expressions, shared_local_refexp, debug=True)
+    results, image = benchmark_inference(image_path, expressions, shared_local_refexp, debug=True, logger=logger, results_dir=results_dir)
     for res, exp, expected in zip(results, expressions, expected_coords):
         if res == "invalid":
             logger.error(f"Invalid coordinate output for expression: {exp}")
