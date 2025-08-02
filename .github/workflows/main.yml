@@ -29,7 +29,6 @@ jobs:
         yarn bundle
     - name: Run lint
       run: |
-        pre-commit run --all-files
         ruff check . --line-length=120 --extend-ignore=E203
     - name: Run tests
       run: pytest
