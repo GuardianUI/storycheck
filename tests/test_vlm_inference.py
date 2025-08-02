@@ -46,7 +46,7 @@ expressions = [
     "type weth in search field"
 ]
 
-def benchmark_inference(image_path, expressions, local_refexp, shared_vlm_engine=None, debug=False):
+def benchmark_inference(image_path, expressions, local_refexp, debug=False):
     global inference_call_count
     start_time = time.time()
     
@@ -62,7 +62,7 @@ def benchmark_inference(image_path, expressions, local_refexp, shared_vlm_engine
         inference_call_count += 1
         logger.debug(f"Starting inference call #{inference_call_count} for '{exp}'")
         try:
-            _, center_point = local_refexp.process_refexp(image, exp, shared_engine=shared_vlm_engine, return_annotated_image=False)
+            _, center_point = local_refexp.process_refexp(image, exp, return_annotated_image=False)
             x, y = center_point.get('x', 0), center_point.get('y', 0)
             logger.debug(f"Image loaded: original {image.width}x{image.height}; Coordinates from LocalRefExp: ({x}, {y})")
             results.append(f"{x},{y}")
@@ -84,7 +84,7 @@ def benchmark_inference(image_path, expressions, local_refexp, shared_vlm_engine
         logger.debug(f"Full results: {results}")
     return results, image
 
-def test_vlm_inference(shared_local_refexp, shared_vlm_engine):
+def test_vlm_inference(shared_local_refexp):
     # Expected coordinates for each expression (scaled to original image 1126x950)
     expected_coords = [
         (1075, 119), # click the connect button
@@ -100,7 +100,7 @@ def test_vlm_inference(shared_local_refexp, shared_vlm_engine):
     tolerance = 10 # Pixel tolerance for coordinate variations
    
     # Test the inference function with a dummy image and expression
-    results, image = benchmark_inference(image_path, expressions, shared_local_refexp, shared_vlm_engine, debug=True)
+    results, image = benchmark_inference(image_path, expressions, shared_local_refexp, debug=True)
     for res, exp, expected in zip(results, expressions, expected_coords):
         if res == "invalid":
             logger.error(f"Invalid coordinate output for expression: {exp}")
