@@ -3,9 +3,8 @@ import re
 from interpreter.constants import StepLabels
 from .step import StepInterpreter, ClickStep, KBInputStep, ScrollStep, KeyPressStep
 from interpreter.ai.local_refexp import LocalRefExp
-from .step import BrowseStep  # Restored import
+from .step import BrowseStep, get_prompt_text  # Restored import
 from PIL import Image
-import asyncio
 
 class UserStepsInterpreter:
 

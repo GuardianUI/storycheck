@@ -1,10 +1,10 @@
-name: StoryCheck CI
+name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [ main, dev ]
   pull_request:
-    branches: [main, dev]
+    branches: [ main, dev ]
 
 jobs:
   test:
@@ -12,29 +12,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-
     - name: Install uv
-      uses: astral-sh/setup-uv@v6
-      with:
-        version: '0.8.4'
-
+      uses: astral-sh/setup-uv@v3
     - name: Install Python deps with uv
       run: |
-        uv pip install --system flake8 pytest -r requirements.txt
+        uv venv
+        source .venv/bin/activate
+        uv pip install ruff pre-commit pytest -r requirements.txt
         # build mock wallet
         cd interpreter/browser/mock_wallet
         yarn install --non-interactive
         yarn bundle
-
-    - name: Lint with flake8
+    - name: Run lint
       run: |
-        flake8 . --max-line-length=120 --extend-ignore=E203
-
+        pre-commit run --all-files
+        ruff check . --line-length=120 --extend-ignore=E203
     - name: Run tests
-      run: |
-        pytest
+      run: pytest

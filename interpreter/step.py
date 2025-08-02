@@ -3,9 +3,7 @@ from loguru import logger
 from PIL import Image
 import re  # For extract_url in BrowseStep
 
-from interpreter.ai import RefExp
 from interpreter.ai import local_refexp
-from interpreter.constants import StepLabels
 
 def get_prompt_text(ast_prompt: list) -> str:
     """

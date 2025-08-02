@@ -7,7 +7,6 @@ Parse markdown formatted user story into structured executable sections:
 from dataclasses import dataclass
 import mistune
 from loguru import logger
-import pprint
 
 
 @dataclass

@@ -1,8 +1,6 @@
 from PIL import Image, ImageDraw
 import time
 import logging
-from interpreter.ai.local_refexp import LocalRefExp
-from interpreter.ai.utils import smart_resize
 
 # Configure logging with console and file output
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
