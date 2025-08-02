@@ -13,6 +13,12 @@ def project_root():
     return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 @pytest.fixture(scope="session")
+def resilts_dir():
+    results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
+    os.makedirs(results_dir, exist_ok=True)
+    return results_dir
+
+@pytest.fixture(scope="session")
 def shared_local_refexp():
     from interpreter.ai.local_refexp import LocalRefExp
     local_refexp = LocalRefExp()

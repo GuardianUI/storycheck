@@ -7,12 +7,13 @@ import os
 # Configure logging with console and file output
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
-file_handler = logging.FileHandler('results/test_vlm_inference.log')
+results_dir = Path(os.environ.get("GUARDIANUI_RESULTS_PATH", "results/"))
+results_dir.mkdir(parents=True, exist_ok=True)
+
+file_handler = logging.FileHandler(f'{results_dir}/test_vlm_inference.log')
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
 logger.addHandler(file_handler)
-results_dir = Path(os.environ.get("GUARDIANUI_RESULTS_PATH", "results/"))
-results_dir.mkdir(parents=True, exist_ok=True)
 
 # Counter for inference calls
 inference_call_count = 0
@@ -75,7 +76,7 @@ def benchmark_inference(image_path, expressions, local_refexp, debug=False):
     
     # Annotate image with valid coordinates
     if valid_coordinates:
-        annotate_image(image.copy(), valid_coordinates, "results/annotated_image.png")
+        annotate_image(image.copy(), valid_coordinates, f"{results_dir}/annotated_image.png")
     
     end_time = time.time()
     logger.debug(f"Inference time for {len(expressions)} prompts: {end_time - start_time:.2f}s")
