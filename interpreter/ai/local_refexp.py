@@ -1,108 +1,117 @@
-# File: interpreter/ai/local_refexp.py
-from loguru import logger
-from PIL import Image, ImageDraw
 from vllm import LLM, SamplingParams
-from transformers import AutoProcessor
+from transformers import Qwen2VLProcessor
+from interpreter.ai.utils import smart_resize
+from PIL import Image, ImageDraw
 import torch
-import html
-from . import RefExp
+import re
+import json
+import logging
 
-class LocalRefExp(RefExp):
-    """
-    Wrapper around VLM Transformer fine tuned for RefExp task
-    """
+logger = logging.getLogger(__name__)
 
-    model = None
-    previous_revision = None
-    processor = None
-    device = None
-    loaded_revision = None
+FN_CALL_TEMPLATE = """You are a highly capable assistant designed to interact with a computer interface using tools. Always respond with structured tool calls when appropriate.
+ 
+# Tools
+You may call one or more functions to assist with the user query.
+You are provided with function signatures within <tools></tools> XML tags:
+<tools>
+{tool_descs}
+</tools>
 
-    async def __init__(self,
-                       model_revision: str = 'main'):
-        if not model_revision:
-            model_revision = 'main'
-        logger.debug(
-            "model checkpoint revision: {model_revision}",
-            model_revision=model_revision)
-        self.load_model(model_revision)
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{{"name": <function-name>, "arguments": <args-json-object>}}
+</tool_call>"""
 
-    def load_model(self, pretrained_revision: str = 'main'):
-        pretrained_repo_name = 'xlangai/Jedi-3B-1080p'
-        # revision can be git commit hash, branch or tag
-        # use 'main' for latest revision
-        logger.debug(
-            "Loading model from: {pretrained_repo_name}, rev: {pretrained_revision}",
-            pretrained_repo_name=pretrained_repo_name,
-            pretrained_revision=pretrained_revision
+class LocalRefExp:
+    def __init__(self):
+        self.model = None
+        self.processor = None
+        self.sampling_params = None
+
+    def init_model(self):
+        model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
+        processor = Qwen2VLProcessor.from_pretrained(model_name)
+        model = LLM(
+            model=model_name,
+            quantization="bitsandbytes" if torch.cuda.is_available() else None,
+            max_model_len=4096,
+            enforce_eager=True,
+            gpu_memory_utilization=0.8
         )
-        if self.processor is None or self.loaded_revision is None \
-                or self.loaded_revision != pretrained_revision:
-            self.loaded_revision = pretrained_revision
-            self.processor = AutoProcessor.from_pretrained(
-                pretrained_repo_name, revision=pretrained_revision)
-            self.model = LLM(
-                model=pretrained_repo_name,
-                quantization="awq" if torch.cuda.is_available() else None,
-                max_model_len=512,
-                enforce_eager=True,
-                max_num_seqs=4  # Default batch size; adjust for debug
-            )
-            self.sampling_params = SamplingParams(temperature=0.0, max_tokens=20)
-            self.device = "cuda" if torch.cuda.is_available() else "cpu"
-            logger.debug('vLLM engine loaded')
+        sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
+        return model, processor, sampling_params
 
-    def process_refexp(self, image: Image,
-                       prompt: str,
-                       return_annotated_image: bool = True, debug=False):
-        logger.debug(
-            "(image, prompt): {image}, {prompt}", image=image, prompt=prompt)
+    def process_refexp(self, image, refexp, shared_engine=None, return_annotated_image=False):
+        if shared_engine:
+            self.model, self.sampling_params, self.processor = shared_engine
+        if not self.model or not self.processor:
+            self.model, self.processor, self.sampling_params = self.init_model()
 
-        # Adjust batch size for debug mode
-        batch_size = 1 if debug else 4
+        # Resize image
+        resized_height, resized_width = smart_resize(image.height, image.width)
+        resized_image = image.resize((resized_width, resized_height), Image.Resampling.LANCZOS)
 
-        # Initialize persistent vLLM engine
-        llm, sampling_params = init_vllm_engine(batch_size)
+        # Prepare input with tool prompt (unified with standalone)
+        tool_descs = json.dumps({
+            "type": "function",
+            "function": {
+                "name": "computer_use",
+                "description": "Use a mouse and keyboard to interact with a computer.",
+                "parameters": {
+                    "properties": {
+                        "action": {"type": "string", "enum": ["mouse_move", "left_click", "type", "key"]},
+                        "coordinate": {"type": "array", "items": {"type": "number"}},
+                        "text": {"type": "string"},
+                        "keys": {"type": "array", "items": {"type": "string"}}
+                    },
+                    "required": ["action"],
+                    "additionalProperties": False
+                }
+            }
+        })
+        system_prompt = FN_CALL_TEMPLATE.format(tool_descs=tool_descs)
 
-        # Trim prompt
-        prompt = prompt[:80].lower()
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": refexp}]}
+        ]
+        chat_template = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        token_ids = self.processor.tokenizer(chat_template, return_tensors="pt")['input_ids'][0].tolist()
+        inputs = [{
+            "prompt_token_ids": token_ids,
+            "multi_modal_data": {"image": resized_image}
+        }]
 
-        # Prepare prompt (Jedi demo style)
-        chat_template = self.processor.apply_chat_template([
-            {"role": "user", "content": [{"type": "text", "text": prompt}, {"type": "image"}]}
-        ])
+        # Generate
+        outputs = self.model.generate(inputs, sampling_params=self.sampling_params)
+        text = outputs[0].outputs[0].text.strip()
 
-        if debug:
-            logger.debug(f"Input template: {chat_template}")
-
-        # Run inference
-        outputs = llm.generate([chat_template], sampling_params=sampling_params)
-        result = outputs[0].outputs[0].text.strip()  # e.g., "0.42,0.67"
-
-        # Parse coords
+        # Parse coordinates (unified with standalone)
         try:
-            x, y = map(float, result.split(","))
-            if not (0 <= x <= 1 and 0 <= y <= 1):
-                raise ValueError("Coordinates out of [0-1] range")
-            center_point = {"x": x, "y": y}
+            matches = re.findall(r"<tool_call>(.*?)</tool_call>", text, re.DOTALL)
+            coords = None
+            for match in matches:
+                action = json.loads(match)
+                if action["name"] == "computer_use" and action["arguments"].get("action") == "left_click":
+                    coords = action["arguments"].get("coordinate")
+                    if coords:
+                        x, y = coords
+                        break
+            if coords is None:
+                raise ValueError("No valid left_click coordinate found")
+            # Scale back to original size (fixed division)
+            original_x = int(x * (image.width / resized_width))
+            original_y = int(y * (image.height / resized_height))
+            center_point = {'x': original_x, 'y': original_y}
         except Exception as e:
-            logger.debug(f"Failed to parse coordinates '{result}': {e}")
-            center_point = {"x": 0, "y": 0}
-
-        logger.debug(f"Predicted center_point: {center_point}")
-
-        width, height = image.size
-        pixel_x = int(width * center_point["x"])
-        pixel_y = int(height * center_point["y"])
-
+            logger.error(f"Parsing failed: {e}")
+            center_point = {'x': 0, 'y': 0}  # Fallback
+        
         if return_annotated_image:
-            # Annotate image (draw circle at center)
-            draw = ImageDraw.Draw(image)
-            r = 30
-            shape = [(pixel_x - r, pixel_y - r), (pixel_x + r, pixel_y + r)]
-            draw.ellipse(shape, outline="green", width=20)
-            draw.ellipse(shape, outline="white", width=10)
-        else:
-            image = None
-
-        return image, center_point
+            annotated_image = image.copy()
+            draw = ImageDraw.Draw(annotated_image)
+            radius = 10
+            draw.ellipse([(original_x - radius, original_y - radius), (original_x + radius, original_y + radius)], fill="red")
+            return annotated_image, center_point
+        return None, center_point

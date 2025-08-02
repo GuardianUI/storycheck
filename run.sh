@@ -12,7 +12,7 @@ clear
 
 # build mock wallet
 cd interpreter/browser/mock_wallet/
-yarn build
+pnpm build
 cd -
 
 # start app
