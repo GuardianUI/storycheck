@@ -3,11 +3,10 @@ import torch
 import logging
 from PIL import Image, ImageDraw
 from vllm import LLM, SamplingParams
-from transformers import Qwen2_5_VLProcessor
+from transformers import Qwen2VLProcessor
 import vllm
 import re
 import json
-from huggingface_hub import hf_hub_download
 import math
 from typing import Tuple
 import numpy as np
@@ -70,7 +69,6 @@ def annotate_image(image: Image.Image, coordinates: list, output_path: str):
 # Model config
 model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"  # Use hosted repo ID
 cache_dir = os.path.expanduser("~/.cache/huggingface/hub")
-processor = None
 
 # Test parameters
 image_path = "tests/uniswap_screenshot.png"
@@ -86,9 +84,36 @@ expressions = [
     "type weth in search field"
 ]
 
-# Persistent vLLM engine (load once)
-llm = None
-sampling_params = None
+logger.info(f"vLLM version: {vllm.__version__}")
+
+def parse_coordinates(response):
+    logger.debug(f"Parsing response: {response}")
+    matches = re.findall(r"<tool_call>(.*?)</tool_call>", response, re.DOTALL)
+    if not matches:
+        # Fallback: assume direct "x,y" output if tool call fails
+        match_xy = re.search(r"(\d+\.?\d*),\s*(\d+\.?\d*)", response)
+        if match_xy:
+            logger.debug(f"Fallback: Found direct coordinates: {match_xy.group(0)}")
+            return [float(match_xy.group(1)), float(match_xy.group(2))]
+        logger.error("No <tool_call> or direct coordinates found in response.")
+        raise ValueError("No <tool_call> or direct coordinates found in response.")
+    
+    for match in matches:
+        try:
+            action = json.loads(match)
+            action_name = action["name"]
+            action_type = action["arguments"].get("action")
+            if action_name == "computer_use" and action_type == "left_click":
+                coords = action["arguments"].get("coordinate")
+                if coords:
+                    logger.debug(f"Raw coordinates (resized image): {coords}")
+                    return coords
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            logger.error(f"Error parsing tool call: {e}\nTool call: {match}")
+            continue
+    logger.error("No valid left_click tool call found in response.")
+    return None
+
 FN_CALL_TEMPLATE = """You are a highly capable assistant designed to interact with a computer interface using tools. Always respond with structured tool calls when appropriate.
  
 # Tools
@@ -122,68 +147,7 @@ def computer_use_function():
         }
     }
 
-logger.info(f"vLLM version: {vllm.__version__}")
-
-def init_vllm_engine(batch_size=4):
-    global llm, sampling_params, processor
-    if llm is None or processor is None:
-        try:
-            # Load processor with local cache
-            model_cache_path = os.path.join(cache_dir, f"models--{model_name.replace('/', '--')}")
-            source = 'cache' if os.path.exists(model_cache_path) else 'Hugging Face'
-            processor = Qwen2_5_VLProcessor.from_pretrained(
-                model_name,
-                cache_dir=cache_dir,
-                local_files_only=os.path.exists(model_cache_path),
-                force_download=False
-            )
-            logger.debug(f"Processor loaded from {source}")
-            
-            # Load vLLM model with local cache
-            llm = LLM(
-                model=model_name,
-                quantization="bitsandbytes" if torch.cuda.is_available() else None,
-                max_model_len=4096,
-                enforce_eager=True,
-                max_num_seqs=batch_size,
-                download_dir=cache_dir
-            )
-            sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
-            logger.debug(f"vLLM engine initialized from {source}")
-        except Exception as e:
-            logger.error(f"vLLM or processor initialization failed: {e}")
-            raise
-    return llm, sampling_params
-
-def parse_coordinates(response):
-    logger.debug(f"Parsing response: {response}")
-    matches = re.findall(r"<tool_call>(.*?)</tool_call>", response, re.DOTALL)
-    if not matches:
-        # Fallback: assume direct "x,y" output if tool call fails
-        match_xy = re.search(r"(\d+\.?\d*),\s*(\d+\.?\d*)", response)
-        if match_xy:
-            logger.debug(f"Fallback: Found direct coordinates: {match_xy.group(0)}")
-            return [float(match_xy.group(1)), float(match_xy.group(2))]
-        logger.error("No <tool_call> or direct coordinates found in response.")
-        raise ValueError("No <tool_call> or direct coordinates found in response.")
-    
-    for match in matches:
-        try:
-            action = json.loads(match)
-            action_name = action["name"]
-            action_type = action["arguments"].get("action")
-            if action_name == "computer_use" and action_type == "left_click":
-                coords = action["arguments"].get("coordinate")
-                if coords:
-                    logger.debug(f"Raw coordinates (resized image): {coords}")
-                    return coords
-        except (json.JSONDecodeError, KeyError) as e:
-            logger.error(f"Error parsing tool call: {e}\nTool call: {match}")
-            continue
-    logger.error("No valid left_click tool call found in response.")
-    return None
-
-def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
+def benchmark_inference(image_path, expressions, llm, sampling_params, processor, batch_size=4, debug=False):
     global generate_call_count
     start_time = time.time()
     
@@ -191,9 +155,6 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
     if debug:
         batch_size = 1
         logger.debug("Debug mode: Processing single step with verbose logging.")
-    
-    # Initialize persistent engine
-    llm, sampling_params = init_vllm_engine(batch_size)
     
     # Load and resize image
     image = Image.open(image_path).convert("RGB")
@@ -268,7 +229,8 @@ def benchmark_inference(image_path, expressions, batch_size=4, debug=False):
         logger.debug(f"Full results: {results}")
     return results, image
 
-def test_vlm_inference():
+def test_vlm_inference(shared_vlm_engine):
+    llm, sampling_params, processor = shared_vlm_engine
     # Expected coordinates for each expression (scaled to original image 1126x950)
     expected_coords = [
         (1075, 119),  # click the connect button
@@ -284,7 +246,7 @@ def test_vlm_inference():
     tolerance = 10  # Pixel tolerance for coordinate variations
     
     # Test the inference function with a dummy image and expression
-    results, image = benchmark_inference(image_path, expressions, batch_size=len(expressions), debug=True)
+    results, image = benchmark_inference(image_path, expressions, llm, sampling_params, processor, batch_size=len(expressions), debug=True)
     for res, exp, expected in zip(results, expressions, expected_coords):
         if res == "invalid":
             logger.error(f"Invalid coordinate output for expression: {exp}")
@@ -298,13 +260,6 @@ def test_vlm_inference():
         distance = np.sqrt((x - expected_x)**2 + (y - expected_y)**2)
         logger.debug(f"Coordinate check for '{exp}': predicted ({x}, {y}), expected ({expected_x}, {expected_y}), distance {distance:.2f} pixels")
         assert distance <= tolerance, f"Coordinates ({x}, {y}) for '{exp}' deviate too far from expected ({expected_x}, {expected_y}) by {distance:.2f} pixels"
-
-    # Explicit cleanup to prevent hangs
-    import gc
-    import torch
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
 
 if __name__ == "__main__":
     test_vlm_inference()
