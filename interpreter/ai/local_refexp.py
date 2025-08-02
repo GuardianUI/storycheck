@@ -6,6 +6,7 @@ import torch
 import re
 import json
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,8 @@ class LocalRefExp:
 
     def init_model(self):
         model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
+        if not torch.cuda.is_available():
+            os.environ["VLLM_IMAGE_DEVICE"] = "cpu"
         processor = Qwen2VLProcessor.from_pretrained(model_name)
         model = LLM(
             model=model_name,
