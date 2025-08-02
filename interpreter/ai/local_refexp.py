@@ -2,7 +2,6 @@ import os
 import multiprocessing
 import torch
 
-# necessary to allow running on both CPU and GPU
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn", force=True)
 
@@ -40,10 +39,10 @@ class LocalRefExp:
         model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
         processor = Qwen2VLProcessor.from_pretrained(model_name)
         if os.getenv("STORYCHECK_FORCE_CPU") or not torch.cuda.is_available():
-            os.environ["VLLM_IMAGE_DEVICE"] = "cpu"
+            os.environ["VLLM_TARGET_DEVICE"] = "cpu"
         model = LLM(
             model=model_name,
-            quantization="bitsandbytes" if torch.cuda.is_available() else None,
+            quantization="bitsandbytes",
             max_model_len=4096,
             enforce_eager=True,
             gpu_memory_utilization=0.8
