@@ -1,12 +1,18 @@
+import os
+import multiprocessing
+import torch
+
+# necessary to allow running on both CPU and GPU
+if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn", force=True)
+
 from vllm import LLM, SamplingParams
 from transformers import Qwen2VLProcessor
 from interpreter.ai.utils import smart_resize
 from PIL import Image, ImageDraw
-import torch
 import re
 import json
 import logging
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +38,9 @@ class LocalRefExp:
 
     def init_model(self):
         model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
-        if not torch.cuda.is_available():
-            os.environ["VLLM_IMAGE_DEVICE"] = "cpu"
         processor = Qwen2VLProcessor.from_pretrained(model_name)
+        if os.getenv("STORYCHECK_FORCE_CPU") or not torch.cuda.is_available():
+            os.environ["VLLM_IMAGE_DEVICE"] = "cpu"
         model = LLM(
             model=model_name,
             quantization="bitsandbytes" if torch.cuda.is_available() else None,
