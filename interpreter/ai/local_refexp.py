@@ -1,6 +1,6 @@
 import os
-import multiprocessing
 import torch
+import multiprocessing
 
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn", force=True)
@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 FN_CALL_TEMPLATE = """You are a highly capable assistant designed to interact with a computer interface using tools. Always respond with structured tool calls when appropriate.
- 
+
 # Tools
 You may call one or more functions to assist with the user query.
 You are provided with function signatures within <tools></tools> XML tags:
@@ -36,16 +36,22 @@ class LocalRefExp:
         self.sampling_params = None
 
     def init_model(self):
-        model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
-        processor = Qwen2VLProcessor.from_pretrained(model_name)
-        if os.getenv("STORYCHECK_FORCE_CPU") or not torch.cuda.is_available():
+        if torch.cuda.is_available():
+            model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
+            quant = "bitsandbytes"
+            gpu_mem_util = 0.8
+        else:
+            model_name = "xlangai/Jedi-3B-1080p"
+            quant = None
+            gpu_mem_util = 1.0
             os.environ["VLLM_TARGET_DEVICE"] = "cpu"
+        processor = Qwen2VLProcessor.from_pretrained(model_name)
         model = LLM(
             model=model_name,
-            quantization="bitsandbytes",
+            quantization=quant,
             max_model_len=4096,
             enforce_eager=True,
-            gpu_memory_utilization=0.8
+            gpu_memory_utilization=gpu_mem_util
         )
         sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
         return model, processor, sampling_params
@@ -54,7 +60,7 @@ class LocalRefExp:
         if shared_engine:
             self.model, self.sampling_params, self.processor = shared_engine
         if not self.model or not self.processor:
-            self.model, self.processor, self.sampling_params = self.init_model()
+            self.model, self.processor, self.sampling_params = self.init_model()        
 
         # Resize image
         resized_height, resized_width = smart_resize(image.height, image.width)
