@@ -1,4 +1,3 @@
-import os
 import torch
 import multiprocessing
 
@@ -39,16 +38,20 @@ class LocalRefExp:
         if torch.cuda.is_available():
             model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
             quant = "bitsandbytes"
-            gpu_mem_util = 0.8
+            gpu_mem_util = 0.9  # Lowered to avoid memory errors on GPU
+            dtype = torch.bfloat16
         else:
+            logger.info("No GPU detected, falling back to CPU mode")
             model_name = "xlangai/Jedi-3B-1080p"
             quant = None
             gpu_mem_util = 1.0
-            os.environ["VLLM_TARGET_DEVICE"] = "cpu"
+            dtype = torch.float32  # Stable for CPU
+
         processor = Qwen2VLProcessor.from_pretrained(model_name)
         model = LLM(
             model=model_name,
             quantization=quant,
+            dtype=dtype,
             max_model_len=4096,
             enforce_eager=True,
             gpu_memory_utilization=gpu_mem_util
