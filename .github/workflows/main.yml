@@ -20,14 +20,18 @@ jobs:
       uses: astral-sh/setup-uv@v3
     - name: Install Python deps with uv
       run: |
-          uv venv
-          source .venv/bin/activate
-          uv pip install ruff pre-commit pytest -r requirements.txt
-          export VLLM_TARGET_DEVICE="cpu"  # Install vLLM with CPU backend for CI
-          # Temporarily skip mock wallet build to focus on pytest
-          # cd interpreter/browser/mock_wallet
-          # yarn install --non-interactive
-          # yarn bundle
+        # Install CPU build deps for vLLM (e.g., for Ubuntu 22.04)
+        sudo apt-get update -y
+        sudo apt-get install -y cmake build-essential
+
+        uv venv
+        source .venv/bin/activate
+        export VLLM_TARGET_DEVICE="cpu"  # Set before install for CPU backend in CI
+        uv pip install ruff pre-commit pytest -r requirements.txt
+        # Temporarily skip mock wallet build to focus on pytest
+        # cd interpreter/browser/mock_wallet
+        # yarn install --non-interactive
+        # yarn bundle
     - name: Run lint
       run: |
         source .venv/bin/activate
