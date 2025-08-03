@@ -40,12 +40,14 @@ class LocalRefExp:
             quant = "bitsandbytes"
             gpu_mem_util = 0.9  # Lowered to avoid memory errors on GPU
             dtype = torch.bfloat16
+            device = "cuda"  # Default for GPU
         else:
             logger.info("No GPU detected, falling back to CPU mode")
             model_name = "xlangai/Jedi-3B-1080p"
             quant = None
             gpu_mem_util = 1.0
             dtype = torch.float32  # Stable for CPU
+            device = "cpu"  # Explicit for CPU backend to avoid empty device error
 
         processor = Qwen2VLProcessor.from_pretrained(model_name)
         model = LLM(
@@ -54,7 +56,8 @@ class LocalRefExp:
             dtype=dtype,
             max_model_len=4096,
             enforce_eager=True,
-            gpu_memory_utilization=gpu_mem_util
+            gpu_memory_utilization=gpu_mem_util,
+            device=device
         )
         sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
         return model, processor, sampling_params
