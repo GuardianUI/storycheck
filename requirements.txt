@@ -1,7 +1,7 @@
 # File: requirements.txt
-torch
-Pillow
-gradio
+torch>=2.7.1
+Pillow>=11.3.0
+gradio>=5.39.0
 playwright
 loguru
 asyncio
@@ -14,3 +14,4 @@ vllm>=0.10.0  # High-throughput inference for multi-step VLM tests (CPU/GPU)
 pytest>=8.4.1  # Testing framework for running test suite
 bitsandbytes
 huggingface_hub
+transformers>=4.36.0

@@ -1,8 +1,5 @@
 import torch
-import multiprocessing
-
-if __name__ == "__main__":
-    multiprocessing.set_start_method("spawn", force=True)
+from transformers import AutoModelForImageTextToText, AutoProcessor  # For CPU fallback
 
 from vllm import LLM, SamplingParams
 from transformers import Qwen2VLProcessor
@@ -38,28 +35,27 @@ class LocalRefExp:
         if torch.cuda.is_available():
             model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
             quant = "bitsandbytes"
-            gpu_mem_util = 0.9  # Lowered to avoid memory errors on GPU
+            gpu_mem_util = 0.9
             dtype = torch.bfloat16
-            device = "cuda"  # Default for GPU
+            # Use vLLM for GPU
+            model = LLM(
+                model=model_name,
+                quantization=quant,
+                dtype=dtype,
+                max_model_len=4096,
+                enforce_eager=True,
+                gpu_memory_utilization=gpu_mem_util
+            )
+            processor = Qwen2VLProcessor.from_pretrained(model_name)
+            sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
         else:
-            logger.info("No GPU detected, falling back to CPU mode")
+            logger.info("No GPU detected, falling back to Transformers on CPU")
             model_name = "xlangai/Jedi-3B-1080p"
-            quant = None
-            gpu_mem_util = 1.0
-            dtype = torch.float32  # Stable for CPU
-            device = "cpu"  # Explicit for CPU backend to avoid empty device error
+            # Use Transformers for CPU (base model)
+            model = AutoModelForImageTextToText.from_pretrained(model_name, device_map="cpu", trust_remote_code=True)
+            processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
+            sampling_params = None  # Transformers uses generate kwargs instead
 
-        processor = Qwen2VLProcessor.from_pretrained(model_name)
-        model = LLM(
-            model=model_name,
-            quantization=quant,
-            dtype=dtype,
-            max_model_len=4096,
-            enforce_eager=True,
-            gpu_memory_utilization=gpu_mem_util,
-            device=device
-        )
-        sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
         return model, processor, sampling_params
 
     def process_refexp(self, image, refexp, shared_engine=None, return_annotated_image=False):
@@ -96,16 +92,23 @@ class LocalRefExp:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": refexp}]}
         ]
-        chat_template = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        token_ids = self.processor.tokenizer(chat_template, return_tensors="pt")['input_ids'][0].tolist()
-        inputs = [{
-            "prompt_token_ids": token_ids,
-            "multi_modal_data": {"image": resized_image}
-        }]
 
-        # Generate
-        outputs = self.model.generate(inputs, sampling_params=self.sampling_params)
-        text = outputs[0].outputs[0].text.strip()
+        if torch.cuda.is_available():
+            # vLLM GPU path
+            chat_template = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            token_ids = self.processor.tokenizer(chat_template, return_tensors="pt")['input_ids'][0].tolist()
+            inputs = [{
+                "prompt_token_ids": token_ids,
+                "multi_modal_data": {"image": resized_image}
+            }]
+
+            outputs = self.model.generate(inputs, sampling_params=self.sampling_params)
+            text = outputs[0].outputs[0].text.strip()
+        else:
+            # Transformers CPU path
+            inputs = self.processor(text=system_prompt + "\n" + refexp, images=resized_image, return_tensors="pt").to("cpu")
+            outputs = self.model.generate(**inputs, max_new_tokens=1024, temperature=0.01, top_k=1)
+            text = self.processor.decode(outputs[0], skip_special_tokens=True)
 
         # Parse coordinates (unified with standalone)
         try:
