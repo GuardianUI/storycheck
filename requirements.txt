@@ -1,6 +1,9 @@
+# Use PyTorch CUDA index for compatible wheels (fixes operator registration issues)
+--extra-index-url https://download.pytorch.org/whl/cu121
 # File: requirements.txt
-torch>=2.7.1
-Pillow>=11.3.0
+torch==2.5.1
+torchvision==0.20.1  # Compatible with torch 2.7.1 for VLM features
+Pillow>=11
 gradio>=5.39.0
 playwright
 loguru
@@ -10,8 +13,8 @@ mistune
 aiohttp
 eth-account
 python-slugify
-vllm>=0.10.0  # High-throughput inference for multi-step VLM tests (CPU/GPU)
 pytest>=8.4.1  # Testing framework for running test suite
 bitsandbytes
 huggingface_hub
 transformers>=4.36.0
+accelerate>=1.9.0

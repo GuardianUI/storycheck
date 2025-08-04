@@ -1,8 +1,6 @@
 import torch
-from transformers import AutoModelForImageTextToText, AutoProcessor  # For CPU fallback
-
-from vllm import LLM, SamplingParams
-from transformers import Qwen2VLProcessor
+from transformers import AutoModelForImageTextToText, Qwen2VLProcessor, BitsAndBytesConfig, AutoConfig
+import os
 from interpreter.ai.utils import smart_resize
 from PIL import Image, ImageDraw
 import re
@@ -29,46 +27,52 @@ class LocalRefExp:
     def __init__(self):
         self.model = None
         self.processor = None
-        self.sampling_params = None
 
     def init_model(self):
-        if torch.cuda.is_available():
-            model_name = "ivelin/storycheck-jedi-3b-1080p-quantized"
-            quant = "bitsandbytes"
-            gpu_mem_util = 0.9
-            dtype = torch.bfloat16
-            # Use vLLM for GPU
-            model = LLM(
-                model=model_name,
-                quantization=quant,
-                dtype=dtype,
-                max_model_len=4096,
-                enforce_eager=True,
-                gpu_memory_utilization=gpu_mem_util
-            )
-            processor = Qwen2VLProcessor.from_pretrained(model_name)
-            sampling_params = SamplingParams(temperature=0.01, max_tokens=1024, top_k=1, seed=0)
-        else:
-            logger.info("No GPU detected, falling back to Transformers on CPU")
-            model_name = "xlangai/Jedi-3B-1080p"
-            # Use Transformers for CPU (base model)
-            model = AutoModelForImageTextToText.from_pretrained(model_name, device_map="cpu", trust_remote_code=True)
-            processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
-            sampling_params = None  # Transformers uses generate kwargs instead
+        force_cpu = os.getenv("VLM_FORCE_CPU", "0") == "1"
+        device = "cuda" if torch.cuda.is_available() and not force_cpu else "cpu"
+        model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "xlangai/Jedi-3B-1080p"
 
-        return model, processor, sampling_params
+        # Quantization only for GPU, but check if model already has config to avoid warning
+        quantization_config = None
+        if device == "cuda":
+            # Load config to check if quantization_config exists
+            config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
+            if not hasattr(config, "quantization_config") or config.quantization_config is None:
+                quantization_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16,
+                    bnb_4bit_use_double_quant=True
+                )
+
+        # Load processor and model (use Qwen2VLProcessor for Jedi compatibility)
+        processor = Qwen2VLProcessor.from_pretrained(model_name, trust_remote_code=True)
+        model = AutoModelForImageTextToText.from_pretrained(
+            model_name,
+            quantization_config=quantization_config,
+            low_cpu_mem_usage=True,
+            trust_remote_code=True,
+            device_map="auto" if device == "cuda" else None
+        )
+        if device != "cuda":
+            model = model.to(device)
+
+        logger.info(f"Model loaded on {device} with {'quantization' if quantization_config else 'full precision'}.")
+
+        return model, processor
 
     def process_refexp(self, image, refexp, shared_engine=None, return_annotated_image=False):
         if shared_engine:
-            self.model, self.sampling_params, self.processor = shared_engine
+            self.model, self.processor = shared_engine
         if not self.model or not self.processor:
-            self.model, self.processor, self.sampling_params = self.init_model()        
+            self.model, self.processor = self.init_model()
 
         # Resize image
         resized_height, resized_width = smart_resize(image.height, image.width)
         resized_image = image.resize((resized_width, resized_height), Image.Resampling.LANCZOS)
 
-        # Prepare input with tool prompt (unified with standalone)
+        # Prepare input with tool prompt
         tool_descs = json.dumps({
             "type": "function",
             "function": {
@@ -93,29 +97,31 @@ class LocalRefExp:
             {"role": "user", "content": [{"type": "image"}, {"type": "text", "text": refexp}]}
         ]
 
-        if torch.cuda.is_available():
-            # vLLM GPU path
-            chat_template = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-            token_ids = self.processor.tokenizer(chat_template, return_tensors="pt")['input_ids'][0].tolist()
-            inputs = [{
-                "prompt_token_ids": token_ids,
-                "multi_modal_data": {"image": resized_image}
-            }]
+        # Unified Transformers path
+        chat_template = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self.processor(text=chat_template, images=resized_image, return_tensors="pt").to(self.model.device)
+        outputs = self.model.generate(
+            **inputs,
+            max_new_tokens=1024,
+            temperature=0.01,
+            top_k=1,
+            do_sample=False  # Greedy decoding for consistent tool-call format
+        )
+        text = self.processor.decode(outputs[0], skip_special_tokens=True)
+        logger.debug(f"Generated text: {text}")  # Log for debugging parsing issues
 
-            outputs = self.model.generate(inputs, sampling_params=self.sampling_params)
-            text = outputs[0].outputs[0].text.strip()
-        else:
-            # Transformers CPU path
-            inputs = self.processor(text=system_prompt + "\n" + refexp, images=resized_image, return_tensors="pt").to("cpu")
-            outputs = self.model.generate(**inputs, max_new_tokens=1024, temperature=0.01, top_k=1)
-            text = self.processor.decode(outputs[0], skip_special_tokens=True)
+        # Extract only the assistant's response (after last 'assistant')
+        if 'assistant' in text:
+            text = text.split('assistant')[-1].strip()
 
-        # Parse coordinates (unified with standalone)
+        # Parse coordinates with improved regex to handle whitespace and newlines
         try:
-            matches = re.findall(r"<tool_call>(.*?)</tool_call>", text, re.DOTALL)
+            matches = re.findall(r"<tool_call>\s*(.+?)\s*</tool_call>", text, re.DOTALL)
             coords = None
             for match in matches:
-                action = json.loads(match)
+                # Clean match: remove newlines and extra spaces
+                clean_match = re.sub(r'\s+', ' ', match).strip()
+                action = json.loads(clean_match)
                 if action["name"] == "computer_use" and action["arguments"].get("action") == "left_click":
                     coords = action["arguments"].get("coordinate")
                     if coords:
@@ -123,14 +129,14 @@ class LocalRefExp:
                         break
             if coords is None:
                 raise ValueError("No valid left_click coordinate found")
-            # Scale back to original size (fixed division)
+            # Scale back to original size
             original_x = int(x * (image.width / resized_width))
             original_y = int(y * (image.height / resized_height))
             center_point = {'x': original_x, 'y': original_y}
         except Exception as e:
             logger.error(f"Parsing failed: {e}")
             center_point = {'x': 0, 'y': 0}  # Fallback
-        
+
         if return_annotated_image:
             annotated_image = image.copy()
             draw = ImageDraw.Draw(annotated_image)
