@@ -1,5 +1,7 @@
 # StoryCheck
 
+## What is StoryCheck
+
 StoryCheck for Web3 apps based on Ethereum. Experimental app testing playground as well as an API served via [Gradio](https://github.com/gradio-app/gradio) on port `7860`.
 
 StoryCheck promotes smooth collaboration between dApp developers, testers, document writers, product managers and support teams by enabling use of natural language for executable and verifiable user stories. StoryCheck reduces the need for expertise in low level e2e test frameworks such as Synpress, Cypress, Playwright, Selenium, etc.
@@ -7,6 +9,10 @@ StoryCheck promotes smooth collaboration between dApp developers, testers, docum
 StoryCheck takes as input markdown formatted user stories with steps written in natural language.
 Then it parses the text and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user.
 Uses SOTA VLM to understand and execute UI instructions.
+
+## Why Now?
+
+When the project was originally founded in 2023, dApp developers were mainly focused on smart contract security. However since then front end hacks have become more prominent culminating with a $1.5B hack of Bybit protocol due to javascript injected malicious code in the Safe multisig front end which almost all projects use to manage their treasuries and have therefore been vulnerable to the same hack. StoryCheck is now relevant more than ever as serious institutional funds are pouring into the Ethereum ecosystem even surpassing Bitcoin ETF inflows in July 2025.
 
 ## Walkthrough Video
 

@@ -11,7 +11,7 @@ def get_prompt_text(ast_prompt: list) -> str:
     """
     for c in ast_prompt[0]['children']:
         if c['type'] == 'text':
-            return c['text']
+            return c['raw']
 
 def get_prompt_link(ast_prompt: list) -> str:
     """
@@ -19,7 +19,7 @@ def get_prompt_link(ast_prompt: list) -> str:
     """
     for c in ast_prompt[0]['children']:
         if c['type'] == 'link':
-            return c['link']
+            return c['href']
 
 class StepInterpreter(ABC):
     def __init__(self, user_agent=None):
