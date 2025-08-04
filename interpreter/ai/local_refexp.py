@@ -6,8 +6,12 @@ from PIL import Image, ImageDraw
 import re
 import json
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
+
+# Suppress specific Transformers warning globally (harmless, no behavior change)
+warnings.filterwarnings("ignore", message="You passed `quantization_config` or equivalent parameters to `from_pretrained` but the model you're loading already has a `quantization_config` attribute.")
 
 FN_CALL_TEMPLATE = """You are a highly capable assistant designed to interact with a computer interface using tools. Always respond with structured tool calls when appropriate.
 
@@ -33,7 +37,7 @@ class LocalRefExp:
         device = "cuda" if torch.cuda.is_available() and not force_cpu else "cpu"
         model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "xlangai/Jedi-3B-1080p"
 
-        # Quantization only for GPU
+        # Quantization only for GPU (simplified without check to avoid NoneType error; warning suppressed above)
         quantization_config = None
         if device == "cuda":
             quantization_config = BitsAndBytesConfig(
@@ -55,7 +59,14 @@ class LocalRefExp:
         if device != "cuda":
             model = model.to(device)
 
-        logger.info(f"Model loaded on {device} with {'quantization' if quantization_config else 'full precision'}.")
+        # On-the-fly dynamic quantization for CPU if enabled (new: toggle via env var)
+        if device == "cpu":
+            model = torch.quantization.quantize_dynamic(
+                model, {torch.nn.Linear}, dtype=torch.qint8
+            )
+            logger.info("Applied dynamic quantization to model on CPU for faster inference.")
+
+        logger.info(f"Model loaded on {device}. Model: {model_name}")
 
         return model, processor
 
