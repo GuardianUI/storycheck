@@ -1,5 +1,5 @@
 import torch
-from transformers import AutoModelForImageTextToText, Qwen2VLProcessor, BitsAndBytesConfig, AutoConfig
+from transformers import AutoModelForImageTextToText, Qwen2VLProcessor, BitsAndBytesConfig
 import os
 from interpreter.ai.utils import smart_resize
 from PIL import Image, ImageDraw
@@ -33,18 +33,15 @@ class LocalRefExp:
         device = "cuda" if torch.cuda.is_available() and not force_cpu else "cpu"
         model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "xlangai/Jedi-3B-1080p"
 
-        # Quantization only for GPU, but check if model already has config to avoid warning
+        # Quantization only for GPU
         quantization_config = None
         if device == "cuda":
-            # Load config to check if quantization_config exists
-            config = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
-            if not hasattr(config, "quantization_config") or config.quantization_config is None:
-                quantization_config = BitsAndBytesConfig(
-                    load_in_4bit=True,
-                    bnb_4bit_quant_type="nf4",
-                    bnb_4bit_compute_dtype=torch.bfloat16,
-                    bnb_4bit_use_double_quant=True
-                )
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_use_double_quant=True
+            )
 
         # Load processor and model (use Qwen2VLProcessor for Jedi compatibility)
         processor = Qwen2VLProcessor.from_pretrained(model_name, trust_remote_code=True)
