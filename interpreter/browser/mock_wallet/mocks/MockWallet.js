@@ -1,3 +1,4 @@
+// File: interpreter/browser/mock_wallet/mocks/MockWallet.js
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Eip1193Bridge } from "@ethersproject/experimental";
 class MockInternalMetaMask {
@@ -10,8 +11,20 @@ class MockInternalMetaMask {
 export class MockWallet extends Eip1193Bridge {
   constructor(signer, provider) {
     super(signer, provider);
-    this._
+    this._events = {};  // Initialize event system
+    this._isMM = true;  // Set internal flag for isMetaMask getter
     console.debug("MockWallet constructor called") // , { signer, provider });
+    // Emulate basic events
+    this.on = (event, cb) => {
+      if (!this._events[event]) this._events[event] = [];
+      this._events[event].push(cb);
+    };
+    this.emit = (event, ...args) => {
+      console.debug(`Emitting event: ${event}`, args);
+      if (this._events[event]) this._events[event].forEach(cb => cb(...args));
+    };
+    // Emit 'connect' to simulate detection
+    setTimeout(() => this.emit('connect', { chainId: this.chainId }), 100);
   }
 
   // Match Metamask interface
@@ -36,6 +49,8 @@ export class MockWallet extends Eip1193Bridge {
       if (method == 'eth_requestAccounts') {
         console.debug("MockWallet.send - mapping Metamask legacy eth_requestAccounts to ETH standard eth_accounts")
         method = 'eth_accounts'
+        // Return array with signer address to simulate connected account
+        return [this.signer.address];
       }
       // workaround for a known issue with ethers
       // https://github.com/ethers-io/ethers.js/issues/1683

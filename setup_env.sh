@@ -72,7 +72,7 @@ playwright install-deps
 echo "Setting up mock wallet..."
 cd interpreter/browser/mock_wallet
 pnpm install --silent
-pnpm bundle  # Note: If package.json "build" uses yarn, update it to pnpm for consistency
+pnpm bundle
 cd ../../..
 
 echo "Environment setup complete!"

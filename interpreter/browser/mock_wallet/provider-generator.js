@@ -1,3 +1,4 @@
+// File: interpreter/browser/mock_wallet/provider-generator.js
 /**
  *
  * Mock Crypto Wallet Provider that enables e2e test automation.
@@ -9,7 +10,6 @@ import { JsonRpcProvider } from "@ethersproject/providers";
 import { Wallet } from "@ethersproject/wallet";
 import { MockWallet } from "./mocks/MockWallet";
 import { ethers } from "ethers"
-
 
 try {
 

@@ -55,6 +55,7 @@ class ChainReq(ReqStep):
             key, value = get_kv(chain_param)
             if key == 'rpc':
                 rpc_url = get_prompt_link(chain_param['children'])
+                logger.debug(f"Custom RPC parsed for interception: {rpc_url}")                
             elif key == 'id':
                 chain_id = value
             elif key == 'block':
@@ -62,12 +63,12 @@ class ChainReq(ReqStep):
             else:
                 raise ValueError(
                     f"Invalid Prerequisite Chain parameter: {key}")
+        # Do not use rpc_url from md for forking. It may be unreliable. Only use for browser interception.
         chain = LocalChain(chain_id=chain_id,
-                           block_n=block_n, rpc_url=rpc_url)
+                           block_n=block_n)
         # set chain in session context
         self.chain = chain
-        logger.debug('prompt chain id: {chain_id},\n block: {block_n}',
-                     chain_id=chain_id, block_n=block_n)
+        logger.debug(f"LocalChain initialized with chain_id={chain_id}, block_n={block_n}, rpc_url={rpc_url}")        
         await chain.start()
         logger.debug('chain prerequisite prepared.')
 
