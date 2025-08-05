@@ -1,4 +1,8 @@
 import math
+from PIL import Image, ImageDraw
+import logging
+
+logger = logging.getLogger(__name__)
 
 FN_CALL_TEMPLATE = """You are a helpful assistant.
 
@@ -56,3 +60,24 @@ def smart_resize(height, width, factor=28, min_pixels=56 * 56, max_pixels=14 * 1
         h_bar = floor_by_factor(height / beta, factor)
         w_bar = floor_by_factor(width / beta, factor)
     return h_bar, w_bar
+
+def annotate_image_with_clicks(image: Image=None, coordinates: list=None, radius=10, color="red") -> Image:
+    """
+    Annotate image at the given path with red circles at given coordinates (list of (x, y) tuples).
+    Overwrites the image file with the annotated version.
+    """
+    assert image is not None, "Image must be provided"
+    assert coordinates, "Coordinates must be provided"
+    annotated_image = image.copy()
+    draw = ImageDraw.Draw(annotated_image)
+    logger.debug(f"Annotating image with coordinates: {coordinates}")
+    for coord in coordinates:
+        x, y = coord
+        # Draw a red circle at the coordinate
+        draw.ellipse(
+            [(x - radius, y - radius), (x + radius, y + radius)],
+            fill=None,
+            outline=color,
+            width=2
+        )        
+    return annotated_image

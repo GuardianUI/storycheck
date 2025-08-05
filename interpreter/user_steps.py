@@ -83,12 +83,15 @@ class ClickStep(UserStepInterpreter):
         text = get_prompt_text(prompt)
         with Image.open(path) as image:
             annotated_image, center_point = self.refexp.process_refexp(
-                image=image, refexp=text)  # Fixed: Use 'refexp' instead of 'prompt'
+                image=image, refexp=text, return_annotated_image=True)
             if annotated_image:
-                annotated_image.save(
-                    f'{path}_click_annotated.png')
+                img_path_root, extension = os.path.splitext(path)
+                annotated_image_path = f'{img_path_root}_click_annotated.png'
+                annotated_image.save(annotated_image_path)
+                logger.debug(
+                    f"Annotated image saved to {annotated_image_path}")
             logger.debug("center point: {cp}", cp=center_point)
-            width, height = image.size
+            # width, height = image.size
         # Assuming LocalRefExp outputs pixel coordinates directly; no xyxy scaling needed
         x, y = center_point.get('x', 0), center_point.get('y', 0)
         logger.debug("Mouse click at x:{x}, y:{y}",

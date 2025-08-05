@@ -2,10 +2,11 @@ import torch
 from transformers import AutoModelForImageTextToText, Qwen2VLProcessor, BitsAndBytesConfig
 import os
 from interpreter.ai.utils import smart_resize
-from PIL import Image, ImageDraw
+from PIL import Image
 import re
 import json
 import logging
+from .utils import annotate_image_with_clicks
 
 logger = logging.getLogger(__name__)
 
@@ -135,14 +136,11 @@ class LocalRefExp:
             original_x = int(x * (image.width / resized_width))
             original_y = int(y * (image.height / resized_height))
             center_point = {'x': original_x, 'y': original_y}
+            if return_annotated_image:
+                annotated_image = annotate_image_with_clicks(image, [(original_x, original_y)])
+                return annotated_image, center_point
         except Exception as e:
             logger.error(f"Parsing failed: {e}")
             center_point = {'x': 0, 'y': 0}  # Fallback
-
-        if return_annotated_image:
-            annotated_image = image.copy()
-            draw = ImageDraw.Draw(annotated_image)
-            radius = 10
-            draw.ellipse([(original_x - radius, original_y - radius), (original_x + radius, original_y + radius)], fill="red")
-            return annotated_image, center_point
         return None, center_point
+    
