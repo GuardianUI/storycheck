@@ -82,7 +82,7 @@ class ClickStep(UserStepInterpreter):
         path = self.saved_screenshot_path
         text = get_prompt_text(prompt)
         with Image.open(path) as image:
-            annotated_image, center_point = await self.refexp.process_refexp(
+            annotated_image, center_point = self.refexp.process_refexp(
                 image=image, refexp=text)  # Fixed: Use 'refexp' instead of 'prompt'
             if annotated_image:
                 annotated_image.save(
