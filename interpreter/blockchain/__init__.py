@@ -1,3 +1,4 @@
+# File: interpreter/blockchain/__init__.py
 import asyncio
 from loguru import logger
 from aiohttp import ClientSession, ClientConnectionError
@@ -10,7 +11,7 @@ load_dotenv('.env.local')
 
 class LocalChain:
     alchemy_key = os.environ.get('ALCHEMY_API_KEY', 'YOUR_ALCHEMY_API_KEY')
-    ANVIL_START_TIMEOUT = 10  # seconds to wait for anvil to start
+    ANVIL_START_TIMEOUT = 30  # seconds to wait for anvil to start (increased for reliability)
     """
     Wrapper around a local blockchain instance managed via Foundry Anvil
     """
@@ -79,6 +80,7 @@ class LocalChain:
             chain=chain_args,
             block=block_args,
             rpc=rpc_args)
+        logger.debug("Launching Anvil process...")
         self.anvil_proc = await asyncio.create_subprocess_exec(
             "anvil",
             *chain_args,
@@ -87,6 +89,19 @@ class LocalChain:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
+        if self.anvil_proc.returncode is not None:
+            raise RuntimeError(f"Anvil failed to start with return code {self.anvil_proc.returncode}")
+        logger.debug("Anvil process launched with PID: {pid}. Waiting for readiness...", pid=self.anvil_proc.pid)
+        # Immediately read initial stdout/stderr to capture startup errors
+        try:
+            initial_stdout = await asyncio.wait_for(self.anvil_proc.stdout.readline(), timeout=2.0)
+            initial_stderr = await asyncio.wait_for(self.anvil_proc.stderr.readline(), timeout=2.0)
+            if initial_stdout:
+                logger.debug("Anvil initial stdout: {out}", out=initial_stdout.decode().strip())
+            if initial_stderr:
+                logger.warning("Anvil initial stderr: {err}", err=initial_stderr.decode().strip())
+        except asyncio.TimeoutError:
+            logger.debug("No initial output from Anvil within 2s; continuing...")        
         logger.debug(
             'Started anvil with process ID: {process}', process=self.anvil_proc.pid)
         # wait for anvil RPC endpoint to become available
@@ -105,6 +120,7 @@ class LocalChain:
                         raise ConnectionError(f"Anvil failed to start within {self.ANVIL_START_TIMEOUT} seconds")
                     await asyncio.sleep(0.5)
             async with session.post(anvil_url) as response:
+                logger.debug("Anvil readiness check response status: {status}", status=response.status)
                 if response.status == 200:
                     logger.debug(
                         'Anvil RPC endpoint is now available at: {url}', url=anvil_url)
@@ -135,6 +151,8 @@ class LocalChain:
 
     async def stop(self):
         # try to stop the process nicely
+        logger.debug("Stopping Anvil process...")
+        
         if self.anvil_proc is not None:
             logger.debug(
                 'Stopping anvil. Process: {process}', process=self.anvil_proc.pid)

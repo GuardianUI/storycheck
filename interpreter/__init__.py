@@ -76,24 +76,27 @@ class StoryInterpreter:
     async def run(self):
         passed = True
         errors = None
+        # Scope prerequisites around the entire story execution to ensure setup (e.g., chain fork)
+        # persists during user steps and expected results, then cleans up afterward.
+        # This aligns with prerequisites' purpose: hold true only for the scope of step execution.        
         async with Prerequisites(prompts=self.user_story.prerequisites) as reqs:
             await reqs.run()
-        async with UserAgent(reqs) as user_agent:
-            page = user_agent.page
-            page.on("console", log_browser_console_message)
-            page.on("request", log_network_request)
-            # run user steps section
-            logger.debug('user_agent: {ua}', ua=user_agent)
-            user_steps = UserStepsSection(user_agent=user_agent,
-                                          prompts=self.user_story.user_steps)
-            await user_steps.run()
-            # await log_wallet_balance(page)
-            # run expected results section
-            async with ExpectedResults(
-                user_agent=user_agent, prompts=self.user_story.expected_results) as expected_results:
-                await expected_results.run()
-            errors = expected_results.errors
-            logger.debug('expected result errors: {e}', e=errors)
-            if errors:
-                passed = False
+            async with UserAgent(reqs) as user_agent:
+                page = user_agent.page
+                page.on("console", log_browser_console_message)
+                page.on("request", log_network_request)
+                # run user steps section
+                logger.debug('user_agent: {ua}', ua=user_agent)
+                user_steps = UserStepsSection(user_agent=user_agent,
+                                            prompts=self.user_story.user_steps)
+                await user_steps.run()
+                # await log_wallet_balance(page)
+                # run expected results section
+                async with ExpectedResults(
+                    user_agent=user_agent, prompts=self.user_story.expected_results) as expected_results:
+                    await expected_results.run()
+                errors = expected_results.errors
+                logger.debug('expected result errors: {e}', e=errors)
+                if errors:
+                    passed = False
         return passed, errors

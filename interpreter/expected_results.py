@@ -129,7 +129,7 @@ class SnapshotCheck(CheckStep):
             with open(saved_snapshot, 'r') as infile:
                 saved_json = json.load(infile)
             new_json = self.user_agent.wallet_tx_snapshot
-            errors = compare_snapshots(saved=saved_json, new=new_json)
+            errors = compare_snapshots(saved_json=saved_json, new_json=new_json)
 
         logger.debug('snapshot check completed.')
         return errors
@@ -144,9 +144,10 @@ class ExpectedResults(StorySection):
     class CheckLabels(Enum):
         SNAPSHOT = auto()
 
-    def __init__(self, **kwargs):
+    def __init__(self, user_agent=None, **kwargs):
+        assert user_agent is not None
         super().__init__(**kwargs)
-        self.user_agent = kwargs.get('user_agent')
+        self.user_agent = user_agent
         self.interpreters = {
             self.CheckLabels.SNAPSHOT: SnapshotCheck(user_agent=self.user_agent)
         }
