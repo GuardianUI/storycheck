@@ -1,8 +1,7 @@
 from abc import abstractmethod, ABC
 from loguru import logger
 from PIL import Image
-import re  # For extract_url in BrowseStep
-
+import re # For extract_url in BrowseStep
 from interpreter.ai import local_refexp
 
 def get_prompt_text(ast_prompt: list) -> str:
@@ -19,7 +18,7 @@ def get_prompt_link(ast_prompt: list) -> str:
     """
     for c in ast_prompt[0]['children']:
         if c['type'] == 'link':
-            return c['href']
+            return c['attrs']['url']  # Fixed to match current AST structure
 
 class StepInterpreter(ABC):
     def __init__(self, user_agent=None):
@@ -39,8 +38,7 @@ class NotImplementedInterpreter(StepInterpreter):
     Placeholder for prompts that cannot be interpreted.
     """
     async def interpret_prompt(self, prompt: str):
-        logger.warning(
-'Interpreter not implemented for prompt: {prompt}', prompt=prompt)
+        logger.warning('Interpreter not implemented for prompt: {prompt}', prompt=prompt)
 
 class BrowseStep(StepInterpreter):
     """

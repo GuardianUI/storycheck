@@ -1,6 +1,6 @@
 from loguru import logger
 from .prerequisites import Prerequisites
-from .user_steps import UserStepsInterpreter
+from .user_steps import UserStepsSection
 from .expected_results import ExpectedResults
 from .browser import UserAgent
 
@@ -111,7 +111,7 @@ class StoryInterpreter:
             page.on("request", log_network_request)
             # run user steps section
             logger.debug('user_agent: {ua}', ua=user_agent)
-            user_steps = UserStepsInterpreter(user_agent=user_agent,
+            user_steps = UserStepsSection(user_agent=user_agent,
                                    prompts=self.user_story.user_steps)
             await user_steps.run()
             # await log_wallet_balance(page)

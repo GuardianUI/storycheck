@@ -7,3 +7,5 @@ yarn-error.log
 package-lock.json
 .env
 /tests
+pnpm-debug.log*
+pnpm-lock.yaml

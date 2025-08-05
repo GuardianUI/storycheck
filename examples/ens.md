@@ -8,7 +8,7 @@
 
 ## User Steps
 
-1. Browse to http://app.ens.domains
+1. Browse to https://ens-app.pages.dev/
 1. Click on Search names or addresses
 1. Type guardianuitest
 1. Press Enter
