@@ -66,9 +66,13 @@ class BrowseStep(UserStepInterpreter):
 
 
 class ClickStep(UserStepInterpreter):
+
+    # class level refexp model shared across instances
+    refexp = None
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.refexp = LocalRefExp()  # Updated to new Jedi VLM
+        self.refexp = LocalRefExp().singleton
 
     async def interpret_prompt(self, prompt=None):
         await super().interpret_prompt(prompt)

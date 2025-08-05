@@ -24,11 +24,14 @@ For each function call, return a json object with function name and arguments wi
 </tool_call>"""
 
 class LocalRefExp:
+
+    __singleton = None  # Class-level singleton instance to make model loading and inference efficient
+
     def __init__(self):
         self.model = None
         self.processor = None
 
-    def init_model(self):
+    def init_model():
         force_cpu = os.getenv("VLM_FORCE_CPU", "0") == "1"
         device = "cuda" if torch.cuda.is_available() and not force_cpu else "cpu"
         model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "xlangai/Jedi-3B-1080p"
@@ -59,12 +62,14 @@ class LocalRefExp:
 
         return model, processor
 
-    def process_refexp(self, image, refexp, shared_engine=None, return_annotated_image=False):
-        if shared_engine:
-            self.model, self.processor = shared_engine
-        if not self.model or not self.processor:
-            self.model, self.processor = self.init_model()
+    @property
+    def singleton(self):
+        if LocalRefExp.__singleton is None:
+            LocalRefExp.__singleton = LocalRefExp()
+            LocalRefExp.__singleton.model, LocalRefExp.__singleton.processor = LocalRefExp.init_model()
+        return LocalRefExp.__singleton
 
+    def process_refexp(self, image, refexp, return_annotated_image=False):
         # Resize image
         resized_height, resized_width = smart_resize(image.height, image.width)
         resized_image = image.resize((resized_width, resized_height), Image.Resampling.LANCZOS)

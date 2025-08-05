@@ -60,7 +60,7 @@ class ClickStep(StepInterpreter):
     async def interpret_prompt(self, prompt: str):
         screenshot = await self.user_agent.page.screenshot(type='png')
         screenshot = Image.frombytes("RGB", screenshot.size, screenshot)
-        annotated_image, center_point = await local_refexp.process_refexp(screenshot, prompt)
+        annotated_image, center_point = await local_refexp.process_prompt(screenshot, prompt)
         pixel_x = int(screenshot.width * center_point["x"])
         pixel_y = int(screenshot.height * center_point["y"])
         await self.user_agent.page.mouse.click(pixel_x, pixel_y)

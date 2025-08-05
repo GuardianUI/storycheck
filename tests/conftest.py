@@ -40,10 +40,10 @@ def logger():
 @pytest.fixture(scope="session")
 def shared_local_refexp():
     from interpreter.ai.local_refexp import LocalRefExp
-    local_refexp = LocalRefExp()
+    local_refexp = LocalRefExp().singleton
     yield local_refexp
     # Explicit cleanup to prevent hangs
-    del local_refexp
+    del LocalRefExp.singleton
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.synchronize()
