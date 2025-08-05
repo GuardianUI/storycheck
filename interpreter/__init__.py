@@ -57,36 +57,9 @@ async def log_network_request(request):
             url: {url}
             request json: {request_json}
             """,
-            url=request.url,
-            request_json=request_json
+                                      url=request.url,
+                                      request_json=request_json
                                       )
-    # response = await request.response()
-    # await response.finished()
-    # try:
-    # response_json = await response.json()
-    # except Exception:
-    # response_json = None
-    # logger.opt(colors=True).debug("""<bg #70A599>[Browser POST response]</bg #70A599>:
-    # url: {url}
-    # request json: {request_json}
-    # OK: {ok}
-    # response status: {response_status},
-    # response json: {response_json}
-    # """,
-    #                           url=request.url,
-    #                           request_json=request_json,
-    #                           ok=response.ok,
-    #                           response_status=response.status,
-    #                           response_json=response_json
-    #                           )
-    # else:
-    #     logger.opt(colors=True).debug("""<bg #70A599>[Browser GET request]</bg #70A599>:
-    #         url: {url}
-    #         OK: {ok}
-    #         """,
-    #                                   url=request.url,
-    #                                   ok=response.ok,
-    #                                   )
 
 class StoryInterpreter:
     """
@@ -112,15 +85,15 @@ class StoryInterpreter:
             # run user steps section
             logger.debug('user_agent: {ua}', ua=user_agent)
             user_steps = UserStepsSection(user_agent=user_agent,
-                                   prompts=self.user_story.user_steps)
+                                          prompts=self.user_story.user_steps)
             await user_steps.run()
             # await log_wallet_balance(page)
             # run expected results section
             async with ExpectedResults(
-                    prompts=self.user_story.expected_results) as expected_results:
+                user_agent=user_agent, prompts=self.user_story.expected_results) as expected_results:
                 await expected_results.run()
-                errors = expected_results.errors
-                logger.debug('expected result errors: {e}', e=errors)
-                if errors:
-                    passed = False
+            errors = expected_results.errors
+            logger.debug('expected result errors: {e}', e=errors)
+            if errors:
+                passed = False
         return passed, errors

@@ -25,6 +25,7 @@ class LocalChain:
 
     anvil_proc = None
 
+    ANVIL_POLL_HOST = '127.0.0.1'
     # listen on all IP addresses assigned to this host
     ANVIL_HOST = '0.0.0.0'
     ANVIL_PORT = '8545'
@@ -89,7 +90,7 @@ class LocalChain:
         logger.debug(
             'Started anvil with process ID: {process}', process=self.anvil_proc.pid)
         # wait for anvil RPC endpoint to become available
-        anvil_url = f"http://{self.ANVIL_HOST}:{self.ANVIL_PORT}"
+        anvil_url = f"http://{self.ANVIL_POLL_HOST}:{self.ANVIL_PORT}"
         async with ClientSession() as session:
             # Poll until anvil responds or timeout
             start_time = asyncio.get_event_loop().time()
@@ -98,6 +99,7 @@ class LocalChain:
                     async with session.post(anvil_url) as response:
                         if response.status == 200:
                             break
+                    logger.debug("Anvil polling attempt successful at {url}", url=anvil_url)
                 except (ConnectionError, ClientConnectionError):
                     if asyncio.get_event_loop().time() - start_time > self.ANVIL_START_TIMEOUT:
                         raise ConnectionError(f"Anvil failed to start within {self.ANVIL_START_TIMEOUT} seconds")

@@ -1,3 +1,5 @@
+# File Path: interpreter/expected_results.py
+
 from .section import StorySection
 from .step import StepInterpreter, get_prompt_text
 from loguru import logger
@@ -7,18 +9,14 @@ import re
 import os
 from traceback import format_tb
 from pathlib import Path
-import shutil
 import json
 
-
 class CheckStep(StepInterpreter):
-
     async def aexit(self):
         """
         Clean up any resources allocated for prerequisites
         """
         pass
-
 
 def cleanup_tx(tx):
     """
@@ -27,7 +25,6 @@ def cleanup_tx(tx):
     """
     for p in tx["writeTx"]['params']:
         p.pop('gasLimit', None)
-
 
 def tx_matches(txsaved, txnew):
     """
@@ -87,14 +84,9 @@ def tx_matches(txsaved, txnew):
             return False
     return True
 
-
-def compare_snapshots(saved=None, new=None):
-    assert saved is not None
-    assert new is not None
-    with open(saved) as f:
-        saved_json = json.load(f)
-    with open(new) as f:
-        new_json = json.load(f)
+def compare_snapshots(saved_json=None, new_json=None):
+    assert saved_json is not None
+    assert new_json is not None
     logger.debug('Saved tx snapshot:\n {s}', s=saved_json)
     logger.debug('New tx snapshot:\n {n}', n=new_json)
     if len(saved_json) == len(new_json):
@@ -115,8 +107,10 @@ def compare_snapshots(saved=None, new=None):
         logger.debug('Snapshots match.')
     return errors
 
-
 class SnapshotCheck(CheckStep):
+    def __init__(self, user_agent=None, **kwargs):
+        super().__init__(user_agent=user_agent, **kwargs)
+        self.user_agent = user_agent
 
     async def interpret_prompt(self, prompt):
         logger.debug('snapshot check prompt:\n {prompt}', prompt=pf(prompt))
@@ -124,14 +118,19 @@ class SnapshotCheck(CheckStep):
         assert story_path is not None
         fpath = Path(story_path)
         saved_snapshot = fpath.with_suffix('.snapshot.json')
-        new_snapshot = Path('results/tx_log_snapshot.json')
         errors = None
-        if saved_snapshot.exists():
-            logger.debug('Found saved snapshot. Comparing transactions...')
-            errors = compare_snapshots(saved=saved_snapshot, new=new_snapshot)
-        else:
+
+        if not saved_snapshot.exists():
             logger.debug('No previous snapshot found. Saving snapshot.')
-            shutil.copyfile(new_snapshot, saved_snapshot)
+            with open(saved_snapshot, 'w') as outfile:
+                json.dump(self.user_agent.wallet_tx_snapshot, outfile)
+        else:
+            logger.debug('Found saved snapshot. Comparing transactions...')
+            with open(saved_snapshot, 'r') as infile:
+                saved_json = json.load(infile)
+            new_json = self.user_agent.wallet_tx_snapshot
+            errors = compare_snapshots(saved=saved_json, new=new_json)
+
         logger.debug('snapshot check completed.')
         return errors
 
@@ -141,23 +140,15 @@ class SnapshotCheck(CheckStep):
         """
         pass
 
-
 class ExpectedResults(StorySection):
-
-    class StepInterpreter(StepInterpreter):
-        def interpret_prompt(self):
-            """
-            Interpret in computer code the intention of the natural language input prompt.
-            """
-            pass
-
     class CheckLabels(Enum):
         SNAPSHOT = auto()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.user_agent = kwargs.get('user_agent')
         self.interpreters = {
-            self.CheckLabels.SNAPSHOT: SnapshotCheck(),
+            self.CheckLabels.SNAPSHOT: SnapshotCheck(user_agent=self.user_agent)
         }
 
     def classify_prompt(self, prompt: list = None):
