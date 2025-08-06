@@ -122,14 +122,15 @@ class UserAgent:
         logger.debug("Starting playwright user agent...")
         self.playwright = await async_playwright().start()
         chromium = self.playwright.chromium
-        pixel5 = self.playwright.devices["Pixel 5"]
+        # set up browser to emulate a mobile device
+        pixel_mobile = self.playwright.devices["Pixel 7"]
         self.browser = await chromium.launch(
             traces_dir=self.results_dir,
             slow_mo=200)  # slow down (ms) so devs can see what's going on
         # expose mock private key in browser context for wallet initialization
         mnemonic = generate_private_key()
         self.browser_context = await self.browser.new_context(
-            **pixel5,
+            **pixel_mobile,
             record_video_dir=self.results_dir / "videos/",
             # Disable CORS checks in order to allow use of mock wallet
             bypass_csp=True

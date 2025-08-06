@@ -13,9 +13,14 @@
 1. Click on search box
 1. Type storychecktest
 1. Press Enter
-1. Click on storychecktest.eth
+1. Click Connect
+1. Click Browser Wallet
+1. Scroll down
+1. Click Next
+1. Click OK
 
 <!-- 
+1. Click on storychecktest.eth
 1. Scroll down
 1. Scroll down
 1. Press End
