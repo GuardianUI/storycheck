@@ -90,13 +90,15 @@ class ClickStep(UserStepInterpreter):
                 annotated_image.save(annotated_image_path)
                 logger.debug(
                     f"Annotated image saved to {annotated_image_path}")
+            # Scale VLM coordinates from physical screenshot pixels to logical browser viewport
+            viewport = self.user_agent.page.viewport_size
+            scale_x = image.width / viewport['width']
+            scale_y = image.height / viewport['height']
+            x, y = center_point.get('x', 0) / scale_x, center_point.get('y', 0) / scale_y            
             logger.debug("center point: {cp}", cp=center_point)
-            # width, height = image.size
-        # Assuming LocalRefExp outputs pixel coordinates directly; no xyxy scaling needed
-        x, y = center_point.get('x', 0), center_point.get('y', 0)
-        logger.debug("Mouse click at x:{x}, y:{y}",
-                     x=x, y=y)
-        await page.mouse.click(x, y)
+            logger.debug("Mouse click at viewport coordinates: (x:{x}, y:{y})",
+                        x=x, y=y)
+            await page.mouse.click(x, y)
 
 
 class KBInputStep(UserStepInterpreter):
