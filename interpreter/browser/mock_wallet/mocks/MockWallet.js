@@ -77,14 +77,24 @@ export class MockWallet extends Eip1193Bridge {
         // If from is present on eth_sendTransaction it errors, removing it makes the library set
         // from as the connected wallet which works fine
         delete params[0].from
+        // Handle EIP-1559 (type 0x2) explicitly
+        if (params[0].type === '0x2' || params[0].type === 2) {
+          params[0].type = 2; // Ensure integer type
+          params[0].chainId = parseInt(await this.send('eth_chainId', []), 16); // Add chainId for signing
+        }        
         const req = JsonRpcProvider.hexlifyTransaction(params[0])
         // Hexlify sets the gasLimit property to be gas again and send transaction requires gasLimit
         req.gasLimit = req.gas
         delete req.gas
+        // Fix: hexlify makes chainId a hex string, but signer expects number
+        if (req.chainId) req.chainId = parseInt(req.chainId, 16);        
+        // Fix: hexlify makes type a hex string, but signer expects number
+        if (req.type) req.type = parseInt(req.type, 16);        
         // Send the transaction
         const tx = await this.signer.sendTransaction(req)
         // result = tx.hash
-        result = tx
+        // result = tx
+        result = tx.hash || ethers.utils.keccak256(await tx.serialize()); // Return hash, simulate if needed
       } else {
         // All other transactions the base class works for
         result = await super.send(method, params)

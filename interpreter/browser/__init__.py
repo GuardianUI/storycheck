@@ -165,6 +165,8 @@ class UserAgent:
 
         def log_wallet_tx(tx):
             logger.debug("Logging write tx to story snapshot:\n {wtx}", wtx=tx)
+            if 'writeTxException' in tx and tx['writeTxException'] is not None:
+                tx['writeTxException'] = str(tx['writeTxException'])  # Convert to string for JSON            
             self.wallet_tx_snapshot.append(tx)
 
         # Capture all wallet write transactions in a story scoped snapshot
