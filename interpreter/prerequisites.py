@@ -1,5 +1,5 @@
 from .section import StorySection
-from .step import StepInterpreter, get_prompt_text, get_prompt_link
+from .step import NotImplementedInterpreter, StepInterpreter, get_prompt_text, get_prompt_link
 import re
 from enum import Enum, auto
 from loguru import logger
@@ -63,9 +63,8 @@ class ChainReq(ReqStep):
             else:
                 raise ValueError(
                     f"Invalid Prerequisite Chain parameter: {key}")
-        # Do not use rpc_url from md for forking. It may be unreliable. Only use for browser interception.
         chain = LocalChain(chain_id=chain_id,
-                           block_n=block_n)
+                           block_n=block_n, rpc_url=rpc_url)
         # set chain in session context
         self.chain = chain
         logger.debug(f"LocalChain initialized with chain_id={chain_id}, block_n={block_n}, rpc_url={rpc_url}")        
@@ -107,7 +106,7 @@ class Prerequisites(StorySection):
         """
         Look for the interpreter of a specific prompt class.
         """
-        return self.interpreters[prompt_class]
+        return self.interpreters.get(prompt_class, NotImplementedInterpreter())
 
     async def __aenter__(self):
         """

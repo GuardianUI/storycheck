@@ -16,6 +16,7 @@ class UserStepInterpreter(StepInterpreter):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         results_dir = os.environ.get("GUARDIANUI_RESULTS_PATH", "results/")
+        assert self.user_agent is not None, "user_agent cannot be None"
         self.results_dir = Path(results_dir)
 
     @property

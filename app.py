@@ -14,7 +14,9 @@ import sys
 RESULTS_DIR = Path('./results')
 
 
-async def story_check(story: str):
+async def story_check(story_path: str):
+    with open(story_path, 'r') as story_file:
+        story = story_file.read()
     logger.debug("Story Check starting for user story:\n {story}", story=story)
     # init md parser
     parser = StoryParser()
@@ -76,9 +78,7 @@ def start_web_service(args):
 
 
 async def run_check(args):
-    with open(args.storypath, 'r') as file:
-        initial_story = file.read()
-    return await story_check(initial_story)
+    return await story_check(args.storypath)
 
 
 async def main():
@@ -91,6 +91,9 @@ async def main():
     output_dir = args.output_dir
     logger.debug('Setting output dir to: {o}', o=output_dir)
     results_path = Path(output_dir)
+    results_path.mkdir(parents=True, exist_ok=True)
+    file_name = os.path.basename(story_path)
+    results_path = results_path / file_name
     results_path.mkdir(parents=True, exist_ok=True)
     os.environ["GUARDIANUI_RESULTS_PATH"] = str(results_path)
     logger.add(results_path / 'storycheck.log', rotation="2 MB")

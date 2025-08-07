@@ -143,9 +143,13 @@ class UserAgent:
 
         init_script = init_script.replace(
             "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
-        remote_rpc_url = self.get_remote_rpc_url()
+        # remote_rpc_url = self.get_remote_rpc_url()
+        local_fork_rpc_url = self.get_local_fork_rpc_url()
+        # init_script = init_script.replace(
+        #     "'__GUARDIANUI_MOCK__RPC'", f"'{remote_rpc_url}'")
+        # Use local fork RPC URL for mock wallet
         init_script = init_script.replace(
-            "'__GUARDIANUI_MOCK__RPC'", f"'{remote_rpc_url}'")
+            "'__GUARDIANUI_MOCK__RPC'", f"'{local_fork_rpc_url}'")
         # chain = self.get_chain()
         # init_script = init_script.replace(
         #     "'__GUARDIANUI_MOCK__CHAIN_ID'", f"{chain.chain_id}")
@@ -203,7 +207,12 @@ class UserAgent:
                          t=exception_type,
                          v=exception_value,
                          tb=exception_traceback)
-        with open(self.results_dir / "tx_log_snapshot.json", "w") as outfile:
+        snapshot_filepath = self.results_dir / "tx_log_snapshot.json"
+        with open(snapshot_filepath, "w") as outfile:
+            logger.debug("Writing wallet tx snapshot to {f}",
+                         f=self.results_dir / "tx_log_snapshot.json")
+            logger.debug("Wallet tx snapshot value:\n {wts}",
+                         wts=self.wallet_tx_snapshot)
             json.dump(self.wallet_tx_snapshot, outfile)
         if exception_type != asyncio.exceptions.CancelledError:
             await self.browser_context.tracing.stop(path=self.results_dir / "trace.zip")

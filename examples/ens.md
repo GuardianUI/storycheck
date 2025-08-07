@@ -1,10 +1,15 @@
 # Register a new ENS domain
 
+This use story walks through an initial domain name search "storychecktest" and successful registration on a mobile device.
+
 ## Prerequisites
 
 1. Chain
    - Id 1
-   <!-- - Block 17034553 -->
+   - RPC https://lb.drpc.org/ogrpc?network=ethereum&dkey=AnmpasF2C0JBqeAEzxVO8aTteiMlrW4R75hpDonbV6cR
+   <!-- - Block 2012034 -->
+2. Browser
+   - Pixel 7
 
 ## User Steps
 
@@ -16,10 +21,25 @@
 1. Click Connect
 1. Click Browser Wallet
 1. Scroll down
+1. Click on Ethereum radio button
 1. Click Next
+1. Click Skip Profile
+1. Scroll down
+1. Click Begin
+1. Click "Open Wallet"
 1. Click OK
 
 <!-- 
+1. Click Accept
+1. Click on search box
+1. Type storychecktest
+1. Press Enter
+1. Click Connect
+1. Click Browser Wallet
+1. Scroll down
+1. Click on Ethereum radio button
+1. Click Next
+1. Click OK
 1. Click on storychecktest.eth
 1. Scroll down
 1. Scroll down
