@@ -4,11 +4,17 @@
 
 StoryCheck for Web3 apps based on Ethereum. Experimental app testing playground as well as an API served via [Gradio](https://github.com/gradio-app/gradio) on port `7860`.
 
-StoryCheck promotes smooth collaboration between dApp developers, testers, document writers, product managers and support teams by enabling use of natural language for executable and verifiable user stories. StoryCheck reduces the need for expertise in low level e2e test frameworks such as Synpress, Cypress, Playwright, Selenium, etc.
+StoryCheck promotes smooth collaboration between dApp developers, testers, document writers, product managers and support teams by enabling use of natural language for executable and verifiable user stories. StoryCheck reduces the need for expertise in lower level e2e test frameworks and brittle test code such as Synpress, Cypress, Playwright, Selenium, etc. Brittle UI testing code often leads to poor return on invested effort, which leaves front ends vulnerable to exploits. StoryCheck changes that by focusing on UX intention and stable UI flows rather than detailed CSS and HTML inspection.
 
-StoryCheck takes as input markdown formatted user stories with steps written in natural language.
-Then it parses the text and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user.
-Uses SOTA VLM to understand and execute UI instructions.
+Typical Workflow:
+1. dApp Builders collaborate with frontier AI models to generate user stories in markdown format. The format includes pre-requisites such as chain ID, UI steps and expected results for blockchain transactions.
+  - Use this [AI Story Ideation Prompt Template](./ai_story_ideation_template.md) for sessions with Grok or similar models.
+1. StoryCheck parses user stories and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user. Uses SOTA VLM (Jedi-3B) to understand and execute UI instructions.
+  - StoryCheck injects in the browser a mock wallet which intercepts and redirects UI transaction requests to a local EVM fork (via anvil).
+  - As long as the user story intention remains stable, StoryCheck will remain robust to minor stylistic UI component and layout changes.
+1. Finally StoryCheck verifies blochain transactions against expected results. Frontier model generates expected results description and verifier code at ideation time. Since blockchain code is strictly deterministic, verifier code remains stable as long as dApp user story intention remains stable.
+
+StoryCheck's north star 🌟: becoming the default tool for Ethereum dApp e2e testing and documentation by blending frontier AI for creative/ideation phases with efficient local models for repetitive execution. This ensures developers save time on story generation (via collaborative Grok/Gemini/ChatGPT/Claude sessions) while enabling low-cost, automated CI/CD checks using efficient small AI models to boost ecosystem security and adoption.
 
 ## Why Now?
 

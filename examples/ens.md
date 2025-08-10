@@ -7,7 +7,7 @@ This use story walks through an initial domain name search "storychecktest" and 
 1. Chain
    - Id 1
    - RPC https://lb.drpc.org/ogrpc?network=ethereum&dkey=AnmpasF2C0JBqeAEzxVO8aTteiMlrW4R75hpDonbV6cR
-   <!-- - Block 2012034 -->
+   - Block 23086523   
 2. Browser
    - Pixel 7
 
@@ -31,4 +31,4 @@ This use story walks through an initial domain name search "storychecktest" and 
 
 ## Expected Results
 
-- Wallet transactions match snapshot
+- Verify commitment transaction succeeded and commitment timestamp set [verifier](verifiers/ens_registration.py)

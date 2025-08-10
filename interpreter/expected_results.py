@@ -1,7 +1,8 @@
-# File Path: interpreter/expected_results.py
-
+# File: interpreter/expected_results.py
 from .section import StorySection
 from .step import StepInterpreter, get_prompt_text
+from .step import get_prompt_link
+from slugify import slugify
 from loguru import logger
 from enum import Enum, auto
 from pprint import pformat as pf
@@ -11,12 +12,40 @@ from traceback import format_tb
 from pathlib import Path
 import json
 
+
 class CheckStep(StepInterpreter):
-    async def aexit(self):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
-        Clean up any resources allocated for prerequisites
+        Clean up any resources allocated for checks
         """
         pass
+
+class VerifierCheck(CheckStep):
+    def __init__(self, user_agent=None, **kwargs):
+        super().__init__(user_agent=user_agent, **kwargs)
+        self.user_agent = user_agent
+
+    async def interpret_prompt(self, prompt, link):
+        logger.debug(f"Verifier prompt: {prompt}, link: {link}")
+        verifier_path = Path(link)
+        results_dir = self.user_agent.results_dir  # From UserAgent        
+        if verifier_path.exists():
+            with open(verifier_path, 'r') as f:
+                code = f.read()
+            # Placeholder for execution (e.g., integrate code_execution tool or exec)
+            logger.info(f"Would execute verifier {verifier_path}: {code[:100]}...")
+            try:
+                local_scope = {}
+                exec(code, globals(), local_scope)
+                result = local_scope['verify'](results_dir)  # Generic call with results_dir
+                if not result.get('passed', False):
+                    return result.get('error', "Verifier failed without error message")                
+                logger.info(f"Verifier {verifier_path} passed.")
+                return None
+            except Exception as e:
+                return f"Execution error: {str(e)}"
+        else:
+            return f"Verifier file not found: {verifier_path}"
 
 def cleanup_tx(tx):
     """
@@ -119,7 +148,6 @@ class SnapshotCheck(CheckStep):
         fpath = Path(story_path)
         saved_snapshot = fpath.with_suffix('.snapshot.json')
         errors = None
-
         if not saved_snapshot.exists():
             logger.debug('No previous snapshot found. Saving snapshot.')
             with open(saved_snapshot, 'w') as outfile:
@@ -130,11 +158,10 @@ class SnapshotCheck(CheckStep):
                 saved_json = json.load(infile)
             new_json = self.user_agent.wallet_tx_snapshot
             errors = compare_snapshots(saved_json=saved_json, new_json=new_json)
-
         logger.debug('snapshot check completed.')
         return errors
 
-    async def aexit(self):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
         Clean up any resources allocated for prerequisites
         """
@@ -143,14 +170,17 @@ class SnapshotCheck(CheckStep):
 class ExpectedResults(StorySection):
     class CheckLabels(Enum):
         SNAPSHOT = auto()
+        VERIFIER = auto()
 
     def __init__(self, user_agent=None, **kwargs):
         assert user_agent is not None
         super().__init__(**kwargs)
         self.user_agent = user_agent
         self.interpreters = {
-            self.CheckLabels.SNAPSHOT: SnapshotCheck(user_agent=self.user_agent)
+            self.CheckLabels.SNAPSHOT: SnapshotCheck(user_agent=self.user_agent),
+            self.CheckLabels.VERIFIER: VerifierCheck(user_agent=self.user_agent)
         }
+        self.parsed_results = []
 
     def classify_prompt(self, prompt: list = None):
         """
@@ -159,16 +189,48 @@ class ExpectedResults(StorySection):
         assert prompt is not None
         logger.debug('Classifying prompt:\n {prompt}', prompt=pf(prompt))
         text = get_prompt_text(prompt)
+        _, link = get_prompt_link(prompt[0] if prompt else {})
         text = text.lower().strip()
         logger.debug('Prompt text: {text}', text=text)
         if re.search(r'match snapshot\b', text):
             return self.CheckLabels.SNAPSHOT
+        if re.search(r'verifier\b', text) or link:
+            return self.CheckLabels.VERIFIER
 
     def get_interpreter_by_class(self, prompt_class=None) -> StepInterpreter:
         """
         Look for the interpreter of a specific prompt class.
         """
         return self.interpreters[prompt_class]
+
+    def interpret(self, expected_results: list):
+        self.parsed_results = []
+        for node in expected_results:
+            if node:
+                text, link = get_prompt_link(node[0])
+                text = text.strip()
+                if link is None:
+                    slug = slugify(text)
+                    link = f"verifiers/{slug}.py"
+                self.parsed_results.append({'text': text, 'verifier_link': link})
+
+    async def run(self, story_interpreter=None):
+        assert story_interpreter is not None, 'story_interpreter should be a populated object'
+        passed = True
+        errors = []
+        self.interpret(story_interpreter.user_story.expected_results)
+        for result in self.parsed_results:
+            # Simulate prompt list for classify
+            sim_prompt = [{'children': [{'type': 'text', 'raw': result['text']}, 
+                                        {'type': 'link', 'href': result['verifier_link']} if result['verifier_link'] else {}]}]
+            prompt_class = self.classify_prompt(sim_prompt)
+            interpreter = self.get_interpreter_by_class(prompt_class)
+            err = await interpreter.interpret_prompt(result['text'], result['verifier_link'])
+            if err:
+                passed = False
+                errors.append(err)
+        logger.info(f"Expected Results report: Passed={passed}, Errors={errors}")                
+        return passed, errors
 
     async def __aenter__(self):
         """
@@ -187,4 +249,4 @@ class ExpectedResults(StorySection):
                          v=exception_value,
                          tb=pf(format_tb(exception_traceback)))
         for label, interpreter in self.interpreters.items():
-            await interpreter.aexit()
+            await interpreter.__aexit__(None, None, None)
