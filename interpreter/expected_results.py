@@ -1,7 +1,6 @@
 # File: interpreter/expected_results.py
 from .section import StorySection
-from .step import StepInterpreter, get_prompt_text
-from .step import get_prompt_link
+from .step import StepInterpreter, get_prompt_text, get_prompt_link
 from slugify import slugify
 from loguru import logger
 from enum import Enum, auto
@@ -25,7 +24,12 @@ class VerifierCheck(CheckStep):
         super().__init__(user_agent=user_agent, **kwargs)
         self.user_agent = user_agent
 
-    async def interpret_prompt(self, prompt, link):
+    async def interpret_prompt(self, prompt):
+        text = get_prompt_text(prompt)
+        link = get_prompt_link(prompt)
+        if link is None:
+            slug = slugify(text)
+            link = f"verifiers/{slug}.py"
         logger.debug(f"Verifier prompt: {prompt}, link: {link}")
         verifier_path = Path(link)
         results_dir = self.user_agent.results_dir  # From UserAgent        
@@ -142,7 +146,8 @@ class SnapshotCheck(CheckStep):
         self.user_agent = user_agent
 
     async def interpret_prompt(self, prompt):
-        logger.debug('snapshot check prompt:\n {prompt}', prompt=pf(prompt))
+        text = get_prompt_text(prompt)
+        logger.debug('snapshot check prompt:\n {prompt}', prompt=text)
         story_path = os.environ.get("GUARDIANUI_STORY_PATH")
         assert story_path is not None
         fpath = Path(story_path)
@@ -180,14 +185,12 @@ class ExpectedResults(StorySection):
             self.CheckLabels.SNAPSHOT: SnapshotCheck(user_agent=self.user_agent),
             self.CheckLabels.VERIFIER: VerifierCheck(user_agent=self.user_agent)
         }
-        self.parsed_results = []
 
     def classify_prompt(self, prompt: list = None):
         """
         Classifies a natural language prompt in md-AST format as one of multiple predefined options.
         """
         assert prompt is not None
-        logger.debug('Classifying prompt:\n {prompt}', prompt=pf(prompt))
         text = get_prompt_text(prompt)
         _, link = get_prompt_link(prompt[0] if prompt else {})
         text = text.lower().strip()
@@ -202,35 +205,6 @@ class ExpectedResults(StorySection):
         Look for the interpreter of a specific prompt class.
         """
         return self.interpreters[prompt_class]
-
-    def interpret(self, expected_results: list):
-        self.parsed_results = []
-        for node in expected_results:
-            if node:
-                text, link = get_prompt_link(node[0])
-                text = text.strip()
-                if link is None:
-                    slug = slugify(text)
-                    link = f"verifiers/{slug}.py"
-                self.parsed_results.append({'text': text, 'verifier_link': link})
-
-    async def run(self, story_interpreter=None):
-        assert story_interpreter is not None, 'story_interpreter should be a populated object'
-        passed = True
-        errors = []
-        self.interpret(story_interpreter.user_story.expected_results)
-        for result in self.parsed_results:
-            # Simulate prompt list for classify
-            sim_prompt = [{'children': [{'type': 'text', 'raw': result['text']}, 
-                                        {'type': 'link', 'href': result['verifier_link']} if result['verifier_link'] else {}]}]
-            prompt_class = self.classify_prompt(sim_prompt)
-            interpreter = self.get_interpreter_by_class(prompt_class)
-            err = await interpreter.interpret_prompt(result['text'], result['verifier_link'])
-            if err:
-                passed = False
-                errors.append(err)
-        logger.info(f"Expected Results report: Passed={passed}, Errors={errors}")                
-        return passed, errors
 
     async def __aenter__(self):
         """

@@ -1,3 +1,4 @@
+# File: interpreter/__init__.py
 from loguru import logger
 from .prerequisites import Prerequisites
 from .user_steps import UserStepsSection
@@ -93,9 +94,10 @@ class StoryInterpreter:
                 # await log_wallet_balance(page)
                 # run expected results section
                 async with ExpectedResults(
-                    user_agent=user_agent, prompts=self.user_story.expected_results) as expected_results:
-                    await expected_results.run(story_interpreter=self)
-                errors = expected_results.errors
+                    user_agent=user_agent, prompts=self.user_story.expected_results
+                ) as expected_results:
+                    await expected_results.run()
+                errors = [entry['errors'] for entry in expected_results.errors]
                 logger.debug('expected result errors: {e}', e=errors)
                 if errors:
                     passed = False

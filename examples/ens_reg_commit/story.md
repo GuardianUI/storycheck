@@ -31,4 +31,5 @@ This use story walks through an initial domain name search "storychecktest" and 
 
 ## Expected Results
 
-- Verify commitment transaction succeeded and commitment timestamp set [verifier](verifiers/ens_registration.py)
+- Verify commitment transaction succeeded [verifier](verifiers/tx_success.py)
+- Verify commitment timestamp set [verifier](verifiers/commitment_timestamp.py)
