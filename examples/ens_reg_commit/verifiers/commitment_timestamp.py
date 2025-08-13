@@ -2,22 +2,36 @@
 from loguru import logger
 
 def verify(tx_log, results_dir):
+    logger.info("[Verifier: commitment_timestamp] Starting verification of commitment timestamp.")
+    
     if not tx_log:
+        logger.error("[Verifier: commitment_timestamp] No transactions in log")
         return {'passed': False, 'error': 'No transactions in log'}
     
     expected_selector = '0xf14fcbc8'  # ENS commit function selector
+    passed = True
+    error = None
     
     for tx in tx_log:
         if tx.get('writeTxException') is not None:
-            return {'passed': False, 'error': 'Tx failed, timestamp not set'}
+            logger.error(f"[Verifier: commitment_timestamp] Tx failed, timestamp not set: {tx['writeTxException']}")
+            passed = False
+            error = 'Tx failed, timestamp not set'
+            break
         
         params = tx.get('writeTx', {}).get('params', [{}])[0]
         data = params.get('data', '')
         if not data.startswith(expected_selector):
-            logger.error(f"Unexpected tx data: {data}")
-            return {'passed': False, 'error': 'Tx data does not match ENS commit call'}
+            logger.error(f"[Verifier: commitment_timestamp] Unexpected tx data: {data}")
+            passed = False
+            error = 'Tx data does not match ENS commit call'
+            break
         
         # Infer timestamp set since tx succeeded (deterministic)
     
-    logger.info("Commitment timestamp verified as set via successful commit tx.")
-    return {'passed': True}
+    if passed:
+        logger.info("[Verifier: commitment_timestamp] Verification passed. Commitment timestamp verified as set via successful commit tx. Transaction log: {tx_log}")
+    else:
+        logger.error(f"[Verifier: commitment_timestamp] Verification failed. Error: {error}. Transaction log: {tx_log}")
+    
+    return {'passed': passed, 'error': error}

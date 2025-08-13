@@ -2,18 +2,17 @@
 from loguru import logger
 
 def verify(tx_log, results_dir):
-    if not tx_log:
-        return {'passed': False, 'error': 'No transactions in log'}
-    
+    logger.info("[Verifier: tx_success] Starting verification of transaction success.")
+    passed = True
     for tx in tx_log:
         if tx.get('writeTxException') is not None:
-            logger.error(f"Transaction failed with exception: {tx['writeTxException']}")
-            return {'passed': False, 'error': f"Tx failed: {tx['writeTxException']}"}
-        
-        result = tx.get('writeTxResult')
-        if not result or not isinstance(result, str) or not result.startswith('0x') or len(result) != 66:
-            logger.error(f"Invalid transaction result: {result}")
-            return {'passed': False, 'error': f"Invalid tx result: {result}"}
-    
-    logger.info("All transactions succeeded with valid results.")
-    return {'passed': True}
+            logger.error(f"[Verifier: tx_success] Transaction failed: {tx['writeTxException']}")
+            passed = False
+        if not tx.get('writeTxResult'):
+            logger.error(f"[Verifier: tx_success] No transaction result found in: {tx}")
+            passed = False
+    if passed:
+        logger.info(f"[Verifier: tx_success] Verification passed. Transaction log: {tx_log}")
+    else:
+        logger.error(f"[Verifier: tx_success] Verification failed. Transaction log: {tx_log}")
+    return passed

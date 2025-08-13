@@ -1,4 +1,4 @@
-# File: interpreter/expected_results.py
+# interpreter/expected_results.py
 from .section import StorySection
 from .step import StepInterpreter, get_prompt_text, get_prompt_link
 from slugify import slugify
@@ -27,11 +27,17 @@ class VerifierCheck(CheckStep):
     async def interpret_prompt(self, prompt):
         text = get_prompt_text(prompt)
         link = get_prompt_link(prompt)
+        logger.debug(f"Verifier prompt: {prompt}, link: {link}")
         if link is None:
             slug = slugify(text)
             link = f"verifiers/{slug}.py"
-        logger.debug(f"Verifier prompt: {prompt}, link: {link}")
-        verifier_path = Path(link)
+        story_dir = Path(os.environ.get("GUARDIANUI_STORY_DIR"))
+        logger.debug(f"Story dir: {story_dir}")
+        if story_dir:
+            verifier_path = story_dir / link
+        else:
+            verifier_path = Path(link)            
+        logger.debug(f"verifier_path: {verifier_path}")
         results_dir = self.user_agent.results_dir  # From UserAgent        
         if verifier_path.exists():
             with open(verifier_path, 'r') as f:
@@ -41,9 +47,13 @@ class VerifierCheck(CheckStep):
             try:
                 local_scope = {}
                 exec(code, globals(), local_scope)
-                result = local_scope['verify'](results_dir)  # Generic call with results_dir
-                if not result.get('passed', False):
-                    return result.get('error', "Verifier failed without error message")                
+                result = local_scope['verify'](self.user_agent.wallet_tx_snapshot, results_dir)  # Call with tx_snapshot and results_dir
+                if isinstance(result, dict):
+                    if not result.get('passed', False):
+                        return result.get('error', "Verifier failed without error message")
+                elif isinstance(result, bool):
+                    if not result:
+                        return "Verifier failed without error message"
                 logger.info(f"Verifier {verifier_path} passed.")
                 return None
             except Exception as e:
@@ -192,12 +202,13 @@ class ExpectedResults(StorySection):
         """
         assert prompt is not None
         text = get_prompt_text(prompt)
-        _, link = get_prompt_link(prompt[0] if prompt else {})
+        logger.debug(f'Classifying prompt: {text}')
+        link = get_prompt_link(prompt or [])
+        logger.debug(f'prompt link: {link}')
         text = text.lower().strip()
-        logger.debug('Prompt text: {text}', text=text)
         if re.search(r'match snapshot\b', text):
             return self.CheckLabels.SNAPSHOT
-        if re.search(r'verifier\b', text) or link:
+        else:
             return self.CheckLabels.VERIFIER
 
     def get_interpreter_by_class(self, prompt_class=None) -> StepInterpreter:
