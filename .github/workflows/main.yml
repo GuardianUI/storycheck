@@ -36,3 +36,7 @@ jobs:
       run: |
         source .venv/bin/activate
         pytest
+    - name: Run example user story tests
+      run: |
+        source .venv/bin/activate
+        storycheck.sh examples/ens_reg_commit/story.md
