@@ -39,4 +39,4 @@ jobs:
     - name: Run example user story tests
       run: |
         source .venv/bin/activate
-        storycheck.sh examples/ens_reg_commit/story.md
+        storycheck.sh examples/ens_reg_commit
