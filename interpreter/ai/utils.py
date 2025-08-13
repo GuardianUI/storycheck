@@ -78,6 +78,6 @@ def annotate_image_with_clicks(image: Image=None, coordinates: list=None, radius
             [(x - radius, y - radius), (x + radius, y + radius)],
             fill=None,
             outline=color,
-            width=3
+            width=4
         )        
     return annotated_image

@@ -49,7 +49,7 @@ def parse_coordinates(response):
 def annotate_image(image: Image.Image, coordinates: list, output_path: str):
     """Annotate image with red circles at given coordinates."""
     draw = ImageDraw.Draw(image)
-    radius = 10  # Size of the marker
+    radius = 20  # Size of the marker
     for coord in coordinates:
         x, y = coord
         logger.debug(f"Annotating coordinate on original image: ({x}, {y})")
@@ -58,7 +58,7 @@ def annotate_image(image: Image.Image, coordinates: list, output_path: str):
             [(x - radius, y - radius), (x + radius, y + radius)],
             fill=None,
             outline="red",
-            width=2
+            width=4
         )
     image.save(output_path)
     logger.info(f"Annotated image saved to {output_path}")
