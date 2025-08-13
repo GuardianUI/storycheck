@@ -3,6 +3,9 @@ from loguru import logger
 
 def verify(tx_log, results_dir):
     logger.info("[Verifier: tx_success] Starting verification of transaction success.")
+    if not tx_log:
+        logger.error("[Verifier: tx_success] Verification failed. No transactions in log.")
+        return False
     passed = True
     for tx in tx_log:
         if tx.get('writeTxException') is not None:

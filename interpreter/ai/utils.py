@@ -61,7 +61,7 @@ def smart_resize(height, width, factor=28, min_pixels=56 * 56, max_pixels=14 * 1
         w_bar = floor_by_factor(width / beta, factor)
     return h_bar, w_bar
 
-def annotate_image_with_clicks(image: Image=None, coordinates: list=None, radius=10, color="red") -> Image:
+def annotate_image_with_clicks(image: Image=None, coordinates: list=None, radius=20, color="red") -> Image:
     """
     Annotate image at the given path with red circles at given coordinates (list of (x, y) tuples).
     Overwrites the image file with the annotated version.
@@ -78,6 +78,6 @@ def annotate_image_with_clicks(image: Image=None, coordinates: list=None, radius
             [(x - radius, y - radius), (x + radius, y + radius)],
             fill=None,
             outline=color,
-            width=2
+            width=3
         )        
     return annotated_image
