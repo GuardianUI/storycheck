@@ -39,6 +39,11 @@ runs:
         pnpm install --silent
         pnpm bundle
         cd ../../..
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: stable
+        # Installs anvil and other Foundry tools to PATH
     - name: Run StoryCheck
       id: storycheck
       shell: bash
