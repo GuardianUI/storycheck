@@ -91,8 +91,6 @@ class StoryInterpreter:
                 user_steps = UserStepsSection(user_agent=user_agent,
                                             prompts=self.user_story.user_steps)
                 await user_steps.run()
-                # await log_wallet_balance(page)
-                # run expected results section
                 async with ExpectedResults(
                     user_agent=user_agent, prompts=self.user_story.expected_results
                 ) as expected_results:

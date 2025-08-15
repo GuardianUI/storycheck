@@ -10,6 +10,9 @@ import os
 from traceback import format_tb
 from pathlib import Path
 import json
+from PIL import Image
+from io import BytesIO
+from .utils import get_timestamped_path, save_screenshot
 
 
 class CheckStep(StepInterpreter):
@@ -47,7 +50,7 @@ class VerifierCheck(CheckStep):
             try:
                 local_scope = {}
                 exec(code, globals(), local_scope)
-                result = local_scope['verify'](self.user_agent.wallet_tx_snapshot, results_dir)  # Call with tx_snapshot and results_dir
+                result = local_scope['verify'](results_dir)  # New standard signature
                 if isinstance(result, dict):
                     if not result.get('passed', False):
                         return result.get('error', "Verifier failed without error message")
@@ -235,3 +238,32 @@ class ExpectedResults(StorySection):
                          tb=pf(format_tb(exception_traceback)))
         for label, interpreter in self.interpreters.items():
             await interpreter.__aexit__(None, None, None)
+
+    async def run(self):
+        # Always save final screenshot and tx snapshot at start, create manifest
+        screenshots_dir = self.user_agent.results_dir / "screenshots"
+        screenshot_bytes = await self.user_agent.page.screenshot(full_page=True)
+        image = Image.open(BytesIO(screenshot_bytes))
+        screenshot_path = get_timestamped_path(screenshots_dir, file_name="final_ui_state")
+        save_screenshot(image, screenshot_path)
+        logger.debug(f"Final UI screenshot saved to {screenshot_path}")
+        
+        tx_snapshot_path = self.user_agent.results_dir / "tx_snapshot.json"
+        with open(tx_snapshot_path, 'w') as f:
+            logger.debug("Writing wallet tx snapshot to {f}",
+                         f=tx_snapshot_path)
+            logger.debug("Wallet tx snapshot value:\n {wts}",
+                         wts=self.user_agent.wallet_tx_snapshot)
+            json.dump(self.user_agent.wallet_tx_snapshot, f)
+
+        manifest = {
+            "tx_snapshot": str(tx_snapshot_path.relative_to(self.user_agent.results_dir)),
+            "final_screenshot": str(screenshot_path.relative_to(self.user_agent.results_dir))
+        }
+        manifest_path = self.user_agent.results_dir / "manifest.json"
+        with open(manifest_path, 'w') as f:
+            json.dump(manifest, f)
+
+        # proceed with normal run        
+        await super().run()
+

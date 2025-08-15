@@ -1,25 +1,10 @@
-from PIL import Image, ImageDraw
+from PIL import Image
 import time
+from interpreter.utils import annotate_image_with_clicks
 
 # Counter for inference calls
 inference_call_count = 0
 
-def annotate_image(image: Image.Image, coordinates: list, output_path: str, logger) -> None:
-    """Annotate image with red circles at given coordinates."""
-    draw = ImageDraw.Draw(image)
-    radius = 20 # Size of the marker
-    for coord in coordinates:
-        x, y = coord
-        logger.debug(f"Annotating coordinate on original image: ({x}, {y})")
-        # Draw a red circle at the coordinate
-        draw.ellipse(
-            [(x - radius, y - radius), (x + radius, y + radius)],
-            fill=None,
-            outline="red",
-            width=4
-        )
-    image.save(output_path)
-    logger.info(f"Annotated image saved to {output_path}")
 
 # Test parameters
 image_path = "tests/uniswap_screenshot.png"
@@ -32,8 +17,10 @@ expressions = [
     "Click on Get started button",
     "Click on Sell text field",
     "Click on Buy text field",
-    "type weth in search field"
+    "type weth in search field",
+
 ]
+
 
 def benchmark_inference(image_path, expressions, local_refexp, debug=False, logger=None, results_dir=None):
     global inference_call_count
@@ -62,7 +49,11 @@ def benchmark_inference(image_path, expressions, local_refexp, debug=False, logg
     
     # Annotate image with valid coordinates
     if valid_coordinates:
-        annotate_image(image.copy(), valid_coordinates, f"{results_dir}/annotated_image.png", logger=logger)
+        logger.debug(f"Annotating image with coordinates: {valid_coordinates}")
+        annotated_image = annotate_image_with_clicks(image=image, coordinates=valid_coordinates)
+        output_path = f"{results_dir}/test_annotated_image.png" 
+        annotated_image.save(output_path)
+        logger.info(f"Annotated image saved to {output_path}")        
     
     end_time = time.time()
     logger.debug(f"Inference time for {len(expressions)} prompts: {end_time - start_time:.2f}s")

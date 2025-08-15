@@ -240,7 +240,7 @@ or defaults to `./results`. It contains a number of helpful artifacts for debugg
 │  │
 │  ├─ storycheck.log — "Consolidated log file between test runner, browser and EVM."
 │  │
-│  ├─ tx_log_snapshot.json — "Snapshot of all blockchain write transactions."
+│  ├─ tx_snapshot.json — "Snapshot of all blockchain write transactions."
 │  │
 │  ├─ videos/ — "Video recordings of browser interactions."
 │  │
@@ -252,8 +252,41 @@ or defaults to `./results`. It contains a number of helpful artifacts for debugg
 │  │
 ```
 
+## Using as a GitHub Action
+
+You can integrate StoryCheck into your project's CI/CD workflow using the GitHub Action. This runs story checks automatically on pushes/pull requests, gating merges on pass/fail and uploading artifacts for review.
+
+Example workflow (add to `.github/workflows/storycheck.yml` in your repo):
+
+```yaml
+name: StoryCheck CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run StoryCheck
+        uses: GuardianUI/storycheck@v0.1.0  # Replace with your tagged version
+        with:
+          storypath: 'examples/sporosdao'  # Path to your story dir/file (relative to your repo)
+          output-dir: 'storycheck-results'  # Optional: Custom output dir
+      - name: Check if passed
+        if: ${{ steps.storycheck.outputs.passed != 'true' }}
+        run: echo "StoryCheck failed!" && exit 1
+```
+
+This example runs a check on the `sporosdao` story, fails the job if it doesn't pass, and uploads results as artifacts. Adapt `storypath` to your project's stories.
+
 ## Contributing
 
 Thanks for your interest in contributing!
 
 Please start with a [new discussion](https://github.com/GuardianUI/storycheck/discussions) before opening an Issue or Pull Request.
+

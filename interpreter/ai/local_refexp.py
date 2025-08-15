@@ -6,7 +6,7 @@ from PIL import Image
 import re
 import json
 import logging
-from .utils import annotate_image_with_clicks
+from ..utils import annotate_image_with_clicks
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,8 @@ You are provided with function signatures within <tools></tools> XML tags:
 For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
 <tool_call>
 {{"name": <function-name>, "arguments": <args-json-object>}}
-</tool_call>"""
+</tool_call>
+"""
 
 class LocalRefExp:
 
@@ -141,6 +142,5 @@ class LocalRefExp:
                 return annotated_image, center_point
         except Exception as e:
             logger.error(f"Parsing failed: {e}")
-            center_point = {'x': 0, 'y': 0}  # Fallback
+            center_point = {'x': -1, 'y': -1}  # Fallback invalid
         return None, center_point
-    

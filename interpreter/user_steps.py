@@ -3,8 +3,8 @@ from .step import StepInterpreter, get_prompt_text, get_prompt_link
 from .ai.local_refexp import LocalRefExp  # Updated to new Jedi VLM
 from enum import Enum, auto
 import re
-import time
 from loguru import logger
+from .utils import get_timestamped_path, save_screenshot
 from PIL import Image
 import os
 from pathlib import Path
@@ -24,12 +24,10 @@ class UserStepInterpreter(StepInterpreter):
         return self.user_agent.session['saved_screenshot_path']
 
     async def save_screenshot(self, prompt):
-        slug = slugify(prompt)
-        path = self.results_dir / \
-            f'screenshots/{time.monotonic_ns()}_{self.__class__.__name__}_{slug}.png'
-        await self.user_agent.page.screenshot(path=path,
-                                              animations='disabled',
-                                              caret='initial')
+        screenshots_dir = self.results_dir / 'screenshots'
+        path = get_timestamped_path(screenshots_dir, file_name=f"{self.__class__.__name__}_{slugify(prompt)}")
+        screenshot_bytes = await self.user_agent.page.screenshot(animations='disabled', caret='initial')
+        save_screenshot(screenshot_bytes, path)
         self.user_agent.session['saved_screenshot_path'] = path
         logger.debug(
             'self.user_agent.session: {session}', session=self.user_agent.session)
@@ -86,11 +84,9 @@ class ClickStep(UserStepInterpreter):
             annotated_image, center_point = self.refexp.process_refexp(
                 image=image, refexp=text, return_annotated_image=True)
             if annotated_image:
-                img_path_root, extension = os.path.splitext(path)
-                annotated_image_path = f'{img_path_root}_click_annotated.png'
-                annotated_image.save(annotated_image_path)
-                logger.debug(
-                    f"Annotated image saved to {annotated_image_path}")
+                annotated_path = get_timestamped_path(path.parent, f"{slugify(text)}_annotated_click")
+                save_screenshot(annotated_image, annotated_path)
+                logger.debug(f"Annotated image saved to {annotated_path}")
             # Scale VLM coordinates from physical screenshot pixels to logical browser viewport
             viewport = self.user_agent.page.viewport_size
             scale_x = image.width / viewport['width']

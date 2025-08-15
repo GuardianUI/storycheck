@@ -59,7 +59,7 @@ export class MockWallet extends Eip1193Bridge {
       if (params && params.length && params[0].from && method === 'eth_call') delete params[0].from
       let result
       // For sending a transaction if we call send it will error
-      // as it wants gasLimit in sendTransaction but hexlify sets the property gas
+      // as it wants gasLimit in sendTransaction in sendTransaction but hexlify sets the property gas
       // to gasLimit which makes sensd transaction error.
       // This have taken the code from the super method for sendTransaction and altered
       // it slightly to make it work with the gas limit issues.
@@ -69,9 +69,17 @@ export class MockWallet extends Eip1193Bridge {
       if (method == 'wallet_switchEthereumChain') {
         console.debug("MockWallet.send - ignoring Metamask legacy wallet_switchEthereumChain")
         result = null
+      } else if (method === 'wallet_requestPermissions') {
+        // Handle wallet-specific permission request (e.g., for eth_accounts) internally
+        // Simulate granting permission to access accounts
+        result = [{
+          parentCapability: 'eth_accounts',
+          caveats: [{ type: 'restrictReturnedAccounts', value: [this.signer.address] }]
+        }];
       } else if (params && params.length && params[0].from && method === 'eth_sendTransaction') {
         writeTx = {method, params}
-        // Hexlify will not take gas, must be gasLimit, set this property to be gasLimit
+        // Hexlify will not take gas, must be gasLimit in sendTransaction but hexlify sets the property gas
+        // to gasLimit which makes sensd transaction error.
         params[0].gasLimit = params[0].gas
         delete params[0].gas
         // If from is present on eth_sendTransaction it errors, removing it makes the library set

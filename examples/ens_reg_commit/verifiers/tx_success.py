@@ -1,7 +1,15 @@
 # examples/ens_reg_commit/verifiers/tx_success.py
 from loguru import logger
+import json
+from pathlib import Path
 
-def verify(tx_log, results_dir):
+def verify(results_dir):
+    manifest_path = Path(results_dir) / "manifest.json"
+    with open(manifest_path, 'r') as f:
+        manifest = json.load(f)
+    tx_snapshot_path = Path(results_dir) / manifest["tx_snapshot"]
+    with open(tx_snapshot_path, 'r') as f:
+        tx_log = json.load(f)
     logger.info("[Verifier: tx_success] Starting verification of transaction success.")
     if not tx_log:
         logger.error("[Verifier: tx_success] Verification failed. No transactions in log.")
