@@ -14,7 +14,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run StoryCheck Action (ENS Example)
         id: storycheck
-        uses: ./action.yml  # Test locally; in prod, use @tag
+        uses: ./  # Test locally; in prod, use @tag
+#         uses: GuardianUI/storycheck@v0.1.0  # Replace with your tagged version
         with:
           storypath: 'examples/ens_reg_commit'  # Example ENS story dir from repo
           output-dir: 'results'

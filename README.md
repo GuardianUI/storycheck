@@ -131,24 +131,28 @@ The first time a test is run, all write transactions going through `window.ether
 - There is malicious injected code that changes the behavior of the app. A big **red alert** is in order! App infrastructure is compromised: hosting providers, third party libraries, or build tools.
 - There is a bug in some of the third party dependencies that affects UI behavior. Developer attention required to track down and fix the root cause.
 
-### Saved Snaphots
+### Verifiers
 
-Snapshot files with wallet transactions are saved to a file with `.snapshot.json` extension in the same directory where the story markdown file is stored.
+Story verifiers are created at the story ideation stage in collaboration with frontier AI models. They are referenced in the **Expected Results** section of a `story.md` file and saved under `/verifiers` sub directory.
 
 ```ml
-├─ astory.md
-├─ astory.snapshot.json
+├─ astory/
+   │
+   ├─story.md
+   │
+   ├─/verifiers
 ```
 
 ## Overview and Architecture
 
-StoryCheck has the following high level architecture:
+StoryCheck has the following high level workflow:
 
-1. StoryCheck users rely on frontier models (Grok, Gemini, ChatGPT, Claude) and their favorite IDE to prepare user docs in a markdown format that is easy to parse and execute via steps 2-3 below.
-2. StoryCheck uses SOTA VLM (Jedi-3B quantized as of July 2025) for UI component referencing and action expressions ("Click on the Connect button", "Type 20 in the Sell text field", "Enter rETH in search bar"). 
-  - This choice of AI model strikes a balance between performance (1-2 sec per expression on laptop with GPU / Macbook M3/M4 and 3-5 sec on CPU, e.g. github actions CI environment).
-3. StoryCheck uses fast and simple interpreter to iterate over markdown formatted steps of UI instructions and pass on to VLM for translation to Playwright function calls. 
-  - We could use an LLM to parse a whole user story, but it would add significant runtime overhead. We are looking to strike a balance between natural language flexibility with high performance test execution in development and CI workflows.
+1. StoryCheck power user uses a frontier models (Grok, Gemini, ChatGPT, Claude) and their favorite IDE to prepare verifiable user stories in sync with project docs in a markdown format that is easy to parse and execute via steps 2-3 below.
+  - Ideation prompt template available at [ai_story_ideation_template.md](ai_story_ideation_template.md)
+1. Stories are executed and verified in three stages:
+  a. Prerequisites: prepare local context with EVM fork, virtual web browser and mock crypto wallet
+  a. User steps: UI commands are parsed with a local AI model and run through virtual browser. ("Click on the Connect button", "Type 20 in the Sell text field", "Enter rETH in search bar"). 
+  a. Expected Results: finally, verifiers inspect app and chain state.
 
 ```mermaid
 flowchart TD
@@ -204,7 +208,7 @@ usage: StoryCheck by GuardianUI [-h] [-o OUTPUT_DIR] [--serve] storypath
 Parses and executes user stories written in markdown format.
 
 positional arguments:
-  storypath             Path to the user story input markdown file (e.g. mystory.md).
+  storypath             Path to the user story dir (e.g. mystory/).
 
 options:
   -h, --help            show this help message and exit
@@ -215,20 +219,16 @@ options:
 Copyright(c) guardianui.com 2023
 ```
 
-For example to run a check of mystory.md, use:
+For example to run a check of mystory/, use:
 
 ```sh
-./storycheck.sh mystory.md
+./storycheck.sh mystory/
 ```
 
 ### Command line exit codes
 
 If all story checks / tests pass, the command will return with exit code `0`. Otherwise if any test fails or other errors occur, the exit code will be non-zero.
 This makes it possible to use storycheck in shell scripts or CI scripts.
-
-## Using in CI scripts
-
-StoryCheck can be used as a test step in CI scripts. Here is an [example github action](https://github.com/GuardianUI/storycheck/blob/main/.github/workflows/main.yml) which sets up a storycheck environment and runs checks. If the storycheck step fails, the CI script fails as well.
 
 ## Output Directory Artifacts
 
