@@ -1,0 +1,30 @@
+# File: .github/workflows/storycheck-example.yml
+name: StoryCheck Example CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  check-example:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run StoryCheck Action (ENS Example)
+        id: storycheck
+        uses: ./  # Test locally; in prod, use @tag
+#         uses: GuardianUI/storycheck@v0.1.0  # Replace with your tagged version
+        with:
+          storypath: 'examples/ens_reg_commit'  # Example ENS story dir from repo
+          output-dir: 'results'
+      - name: Check if StoryCheck passed
+        if: ${{ steps.storycheck.outputs.passed != 'true' }}
+        run: echo "StoryCheck failed on ENS example!" && exit 1
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storycheck-results-${{ github.run_id }}-${{ inputs.storypath }}
+          path: ${{ inputs.output-dir }}

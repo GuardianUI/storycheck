@@ -1,0 +1,63 @@
+# File: action.yml
+name: 'StoryCheck'
+description: 'Run StoryCheck for web3 dApp user stories in CI/CD'
+inputs:
+  storypath:
+    description: 'Path to the user story markdown file or directory (relative to your repo)'
+    required: true
+  output-dir:
+    description: 'Directory for results (default: results)'
+    required: false
+    default: 'results'
+outputs:
+  passed:
+    description: 'Whether the story check passed (true/false)'
+    value: ${{ steps.storycheck.outputs.passed }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Install uv
+      shell: bash
+      run: curl -LsSf https://astral.sh/uv/install.sh | sh
+    - name: Install pnpm
+      shell: bash
+      run: npm install -g pnpm
+    - name: Set up environment
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        uv venv --python python3.10 .venv --clear
+        source .venv/bin/activate
+        uv pip install -r requirements.txt
+        playwright install
+        playwright install-deps
+        cd interpreter/browser/mock_wallet
+        pnpm install --silent
+        pnpm bundle
+        cd ../../..
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: stable
+        # Installs anvil and other Foundry tools to PATH
+    - name: Run StoryCheck
+      id: storycheck
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        ./storycheck.sh "${{ github.workspace }}/${{ inputs.storypath }}" --output-dir "${{ github.workspace }}/${{ inputs.output-dir }}"
+        if [ $? -eq 0 ]; then
+          echo "passed=true" >> $GITHUB_OUTPUT
+        else
+          echo "passed=false" >> $GITHUB_OUTPUT
+        fi
+    - name: Upload artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: storycheck-results
+        path: ${{ inputs.output-dir }}

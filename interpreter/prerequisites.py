@@ -1,5 +1,5 @@
 from .section import StorySection
-from .step import StepInterpreter, get_prompt_text, get_prompt_link
+from .step import NotImplementedInterpreter, StepInterpreter, get_prompt_text, get_prompt_link
 import re
 from enum import Enum, auto
 from loguru import logger
@@ -55,6 +55,7 @@ class ChainReq(ReqStep):
             key, value = get_kv(chain_param)
             if key == 'rpc':
                 rpc_url = get_prompt_link(chain_param['children'])
+                logger.debug(f"Custom RPC parsed for interception: {rpc_url}")                
             elif key == 'id':
                 chain_id = value
             elif key == 'block':
@@ -66,8 +67,7 @@ class ChainReq(ReqStep):
                            block_n=block_n, rpc_url=rpc_url)
         # set chain in session context
         self.chain = chain
-        logger.debug('prompt chain id: {chain_id},\n block: {block_n}',
-                     chain_id=chain_id, block_n=block_n)
+        logger.debug(f"LocalChain initialized with chain_id={chain_id}, block_n={block_n}, rpc_url={rpc_url}")        
         await chain.start()
         logger.debug('chain prerequisite prepared.')
 
@@ -106,7 +106,7 @@ class Prerequisites(StorySection):
         """
         Look for the interpreter of a specific prompt class.
         """
-        return self.interpreters[prompt_class]
+        return self.interpreters.get(prompt_class, NotImplementedInterpreter())
 
     async def __aenter__(self):
         """

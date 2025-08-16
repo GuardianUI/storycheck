@@ -1,3 +1,4 @@
+# File: app.py
 import gradio as gr
 from loguru import logger
 import asyncio
@@ -13,7 +14,9 @@ import sys
 RESULTS_DIR = Path('./results')
 
 
-async def story_check(story: str):
+async def story_check(story_path: str):
+    with open(story_path, 'r') as story_file:
+        story = story_file.read()
     logger.debug("Story Check starting for user story:\n {story}", story=story)
     # init md parser
     parser = StoryParser()
@@ -37,7 +40,7 @@ def load_args():
         epilog='Copyright(c) guardianui.com 2023')
     # parser.add_argument('filename')           # positional argument
     parser.add_argument('storypath',
-                        help='Path to the user story input markdown file (e.g. mystory.md).')
+                        help='Path to the user story directory (e.g. examples/mystory).')
     parser.add_argument('-o', '--output-dir',
                         help=f'Directory where all results from the storycheck run will be stored. Defaults to "{RESULTS_DIR}"',
                         default=RESULTS_DIR)
@@ -75,21 +78,24 @@ def start_web_service(args):
 
 
 async def run_check(args):
-    with open(args.storypath, 'r') as file:
-        initial_story = file.read()
-    return await story_check(initial_story)
+    return await story_check(args.story_md_path)
 
 
 async def main():
     load_dotenv()
     args = load_args()
-    story_path = Path(args.storypath)
-    logger.debug('Opening story file: {infile}', infile=story_path)
-    assert story_path.exists(), 'Story file not found.'
-    os.environ["GUARDIANUI_STORY_PATH"] = str(story_path)
+    story_dir = Path(args.storypath)
+    assert story_dir.is_dir(), 'Story directory not found.'
+    story_md_path = story_dir / 'story.md'
+    assert story_md_path.exists(), 'story.md not found in directory.'
+    args.story_md_path = str(story_md_path)
+    logger.debug('Opening story file: {infile}', infile=story_md_path)
+    os.environ["GUARDIANUI_STORY_PATH"] = str(story_md_path)
+    os.environ["GUARDIANUI_STORY_DIR"] = str(story_dir)
     output_dir = args.output_dir
     logger.debug('Setting output dir to: {o}', o=output_dir)
-    results_path = Path(output_dir)
+    story_slug = story_dir.name
+    results_path = Path(output_dir) / story_slug
     results_path.mkdir(parents=True, exist_ok=True)
     os.environ["GUARDIANUI_RESULTS_PATH"] = str(results_path)
     logger.add(results_path / 'storycheck.log', rotation="2 MB")

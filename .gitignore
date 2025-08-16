@@ -1,4 +1,7 @@
 .env
+.env.local
+.env.*.local
+
 
 **/__pycache__/
 
@@ -8,3 +11,13 @@ results/
 
 ens-app/
 node_modules/
+
+# model files
+model/
+models/
+
+# project digest for LLM consumption
+digest.txt
+
+# workspace run results
+results

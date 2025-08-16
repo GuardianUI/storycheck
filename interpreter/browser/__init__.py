@@ -2,7 +2,6 @@ from playwright.async_api import async_playwright
 from loguru import logger
 from pathlib import Path
 from eth_account import Account
-import json
 import os
 import asyncio
 
@@ -47,7 +46,10 @@ class UserAgent:
     async def hook_rpc_router(self, source):
         # rewrite RPC requests to local evm / anvil fork
         local_fork_rpc_url = self.get_local_fork_rpc_url()
-        remote_rpc_url = self.get_remote_rpc_url()
+        _remote_rpc_url = self.get_remote_rpc_url()
+        # Use base URL without query params for flexible matching
+        rpc_base_url = _remote_rpc_url.split('?')[0]
+        rpc_base_url += '**'  # Glob to match any suffix, including query params        
 
         async def reroute_rpc(route):
             orig_url = route.request.url
@@ -58,6 +60,7 @@ class UserAgent:
                 request_json = None
             logger.debug("""Rerouting RPC request:
                 original url: {original_url}
+                matched glob: {glob_pattern}                         
                 new url.    : {new_url}
                 method: {method}
                 request json: {request_json}
@@ -65,7 +68,8 @@ class UserAgent:
                          original_url=orig_url,
                          new_url=new_url,
                          method=route.request.method,
-                         request_json=request_json)
+                         request_json=request_json,
+                         glob_pattern=rpc_base_url)                         
             try:
                 # continue_ mandates same protocol: https != http
                 # await route.continue_(url=new_url)
@@ -111,9 +115,9 @@ class UserAgent:
         # Runs last.
         # logger.debug(
         #     'source browser context == self browser context: {bc}', bc=source['browserContext'] == self.browser_context)
-        await self.browser_context.route(remote_rpc_url, reroute_rpc)
+        await self.browser_context.route(rpc_base_url, reroute_rpc)
         logger.info(
-            f"Activated RPC reroute rule in new page context: from {remote_rpc_url} to {local_fork_rpc_url}")
+            f"Activated RPC reroute rule in new page context: from {rpc_base_url} to {local_fork_rpc_url}")
 
     async def __aenter__(self):
         """
@@ -122,14 +126,15 @@ class UserAgent:
         logger.debug("Starting playwright user agent...")
         self.playwright = await async_playwright().start()
         chromium = self.playwright.chromium
-        pixel5 = self.playwright.devices["Pixel 5"]
+        # set up browser to emulate a mobile device
+        pixel_mobile = self.playwright.devices["Pixel 7"]
         self.browser = await chromium.launch(
             traces_dir=self.results_dir,
             slow_mo=200)  # slow down (ms) so devs can see what's going on
         # expose mock private key in browser context for wallet initialization
         mnemonic = generate_private_key()
         self.browser_context = await self.browser.new_context(
-            **pixel5,
+            **pixel_mobile,
             record_video_dir=self.results_dir / "videos/",
             # Disable CORS checks in order to allow use of mock wallet
             bypass_csp=True
@@ -142,13 +147,10 @@ class UserAgent:
 
         init_script = init_script.replace(
             "'__GUARDIANUI_MOCK__PRIVATE_KEY'", f"'{mnemonic}'")
-        remote_rpc_url = self.get_remote_rpc_url()
+        # remote_rpc_url = self.get_remote_rpc_url()
+        local_fork_rpc_url = self.get_local_fork_rpc_url()
         init_script = init_script.replace(
-            "'__GUARDIANUI_MOCK__RPC'", f"'{remote_rpc_url}'")
-        # chain = self.get_chain()
-        # init_script = init_script.replace(
-        #     "'__GUARDIANUI_MOCK__CHAIN_ID'", f"{chain.chain_id}")
-
+            "'__GUARDIANUI_MOCK__RPC'", f"'{local_fork_rpc_url}'")
         await self.browser_context.expose_binding("__guardianui_hook_rpc_router",
                                                   self.hook_rpc_router)
 
@@ -160,6 +162,8 @@ class UserAgent:
 
         def log_wallet_tx(tx):
             logger.debug("Logging write tx to story snapshot:\n {wtx}", wtx=tx)
+            if 'writeTxException' in tx and tx['writeTxException'] is not None:
+                tx['writeTxException'] = str(tx['writeTxException'])  # Convert to string for JSON            
             self.wallet_tx_snapshot.append(tx)
 
         # Capture all wallet write transactions in a story scoped snapshot
@@ -202,8 +206,6 @@ class UserAgent:
                          t=exception_type,
                          v=exception_value,
                          tb=exception_traceback)
-        with open(self.results_dir / "tx_log_snapshot.json", "w") as outfile:
-            json.dump(self.wallet_tx_snapshot, outfile)
         if exception_type != asyncio.exceptions.CancelledError:
             await self.browser_context.tracing.stop(path=self.results_dir / "trace.zip")
             await self.browser_context.close()

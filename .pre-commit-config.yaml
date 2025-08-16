@@ -1,0 +1,6 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.8  # Latest as of Aug 2, 2025, per PyPI
+    hooks:
+      - id: ruff
+        args: [--fix, --line-length=120, --extend-ignore=E203]

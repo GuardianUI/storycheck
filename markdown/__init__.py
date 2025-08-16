@@ -7,7 +7,6 @@ Parse markdown formatted user story into structured executable sections:
 from dataclasses import dataclass
 import mistune
 from loguru import logger
-import pprint
 
 
 @dataclass
@@ -41,7 +40,7 @@ class StoryParser:
         for (index, item) in enumerate(ast):
             # logger.debug(item)
             if item['type'] == 'heading' and item['children'][0]['type'] == 'text' \
-                    and item['children'][0]['text'].lower() == title.lower():
+                    and item['children'][0]['raw'].lower() == title.lower():
                 section_found = True
                 ast_tail = ast_tail[index+1:]
                 # logger.debug('Section found: {s}', s=title)

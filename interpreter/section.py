@@ -28,7 +28,7 @@ class StorySection(ABC):
         return self._errors
 
     @abstractmethod
-    def classify_prompt(self, prompt: str = None):
+    def classify_prompt(self, prompt: list = None):
         """
         Classifies a natural language prompt as one of multiple predefined options.
         """

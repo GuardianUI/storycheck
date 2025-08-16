@@ -1,12 +1,24 @@
 # StoryCheck
 
+## What is StoryCheck
+
 StoryCheck for Web3 apps based on Ethereum. Experimental app testing playground as well as an API served via [Gradio](https://github.com/gradio-app/gradio) on port `7860`.
 
-It takes as input markdown formatted user stories with steps written in natural language.
-Then it parses the text and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user.
-Uses [RefExp GPT](https://huggingface.co/spaces/GuardianUI/ui-refexp-click) to predict UI element coordinates given a referring expression.
+StoryCheck promotes smooth collaboration between dApp developers, testers, document writers, product managers and support teams by enabling use of natural language for executable and verifiable user stories. StoryCheck reduces the need for expertise in lower level e2e test frameworks and brittle test code such as Synpress, Cypress, Playwright, Selenium, etc. Brittle UI testing code often leads to poor return on invested effort, which leaves front ends vulnerable to exploits. StoryCheck changes that by focusing on UX intention and stable UI flows rather than detailed CSS and HTML inspection.
 
-Note: Storycheck is currently most reliable for testing the UI of smartphones and tablets.
+Typical Workflow:
+1. dApp Builders collaborate with frontier AI models to generate user stories in markdown format. The format includes pre-requisites such as chain ID, UI steps and expected results for blockchain transactions.
+  - Use this [AI Story Ideation Prompt Template](./ai_story_ideation_template.md) for sessions with Grok or similar models.
+1. StoryCheck parses user stories and executes the steps in a virtual web browser (via Playwright) closely emulating the actions of a real user. Uses SOTA VLM (Jedi-3B) to understand and execute UI instructions.
+  - StoryCheck injects in the browser a mock wallet which intercepts and redirects UI transaction requests to a local EVM fork (via anvil).
+  - As long as the user story intention remains stable, StoryCheck will remain robust to minor stylistic UI component and layout changes.
+1. Finally StoryCheck verifies blochain transactions against expected results. Frontier model generates expected results description and verifier code at ideation time. Since blockchain code is strictly deterministic, verifier code remains stable as long as dApp user story intention remains stable.
+
+StoryCheck's north star 🌟: becoming the default tool for Ethereum dApp e2e testing and documentation by blending frontier AI for creative/ideation phases with efficient local models for repetitive execution. This ensures developers save time on story generation (via collaborative Grok/Gemini/ChatGPT/Claude sessions) while enabling low-cost, automated CI/CD checks using efficient small AI models to boost ecosystem security and adoption.
+
+## Why Now?
+
+When the project was originally founded in 2023, dApp developers were mainly focused on smart contract security. However since then front end hacks have become more prominent culminating with a $1.5B hack of Bybit protocol due to javascript injected malicious code in the Safe multisig front end which almost all projects use to manage their treasuries and have therefore been vulnerable to the same hack. StoryCheck is now relevant more than ever as serious institutional funds are pouring into the Ethereum ecosystem even surpassing Bitcoin ETF inflows in July 2025.
 
 ## Walkthrough Video
 
@@ -119,16 +131,28 @@ The first time a test is run, all write transactions going through `window.ether
 - There is malicious injected code that changes the behavior of the app. A big **red alert** is in order! App infrastructure is compromised: hosting providers, third party libraries, or build tools.
 - There is a bug in some of the third party dependencies that affects UI behavior. Developer attention required to track down and fix the root cause.
 
-### Saved Snaphots
+### Verifiers
 
-Snapshot files with wallet transactions are saved to a file with `.snapshot.json` extension in the same directory where the story markdown file is stored.
+Story verifiers are created at the story ideation stage in collaboration with frontier AI models. They are referenced in the **Expected Results** section of a `story.md` file and saved under `/verifiers` sub directory.
 
 ```ml
-├─ astory.md
-├─ astory.snapshot.json
+├─ astory/
+   │
+   ├─story.md
+   │
+   ├─/verifiers
 ```
 
-## High level design
+## Overview and Architecture
+
+StoryCheck has the following high level workflow:
+
+1. StoryCheck power user uses a frontier models (Grok, Gemini, ChatGPT, Claude) and their favorite IDE to prepare verifiable user stories in sync with project docs in a markdown format that is easy to parse and execute via steps 2-3 below.
+  - Ideation prompt template available at [ai_story_ideation_template.md](ai_story_ideation_template.md)
+1. Stories are executed and verified in three stages:
+  a. Prerequisites: prepare local context with EVM fork, virtual web browser and mock crypto wallet
+  a. User steps: UI commands are parsed with a local AI model and run through virtual browser. ("Click on the Connect button", "Type 20 in the Sell text field", "Enter rETH in search bar"). 
+  a. Expected Results: finally, verifiers inspect app and chain state.
 
 ```mermaid
 flowchart TD
@@ -139,6 +163,7 @@ flowchart TD
     D -->|sign tx| F[Mock Wallet / EIP1193Bridge]
     F -->|blokchain tx| G[Local EVM Fork / anvil]
 ```
+
 
 ## Directory structure
 
@@ -162,11 +187,13 @@ flowchart TD
 
 ## How to Build and Run
 
-This project is pre-configured to build and run via Gitpod.
+### Local Setup with uv (Recommended for Fast Environment Management)
+To set up the environment locally using `uv` (a fast Python package manager), run the following script. This creates a virtual environment with Python 3.10, installs dependencies from `requirements.txt`, sets up Playwright, and builds the mock wallet.
 
-[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/GuardianUI/storycheck)
-
-To run locally or in another dev environment, copy the steps from [`.gitpod.yml`](.gitpod.yml)
+```bash
+chmod +x setup_env.sh
+./setup_env.sh
+source .venv/bin/activate
 
 ### Command line arguments
 
@@ -181,7 +208,7 @@ usage: StoryCheck by GuardianUI [-h] [-o OUTPUT_DIR] [--serve] storypath
 Parses and executes user stories written in markdown format.
 
 positional arguments:
-  storypath             Path to the user story input markdown file (e.g. mystory.md).
+  storypath             Path to the user story dir (e.g. mystory/).
 
 options:
   -h, --help            show this help message and exit
@@ -192,20 +219,16 @@ options:
 Copyright(c) guardianui.com 2023
 ```
 
-For example to run a check of mystory.md, use:
+For example to run a check of mystory/, use:
 
 ```sh
-./storycheck.sh mystory.md
+./storycheck.sh mystory/
 ```
 
 ### Command line exit codes
 
 If all story checks / tests pass, the command will return with exit code `0`. Otherwise if any test fails or other errors occur, the exit code will be non-zero.
 This makes it possible to use storycheck in shell scripts or CI scripts.
-
-## Using in CI scripts
-
-StoryCheck can be used as a test step in CI scripts. Here is an [example github action](https://github.com/GuardianUI/storycheck/blob/main/.github/workflows/main.yml) which sets up a storycheck environment and runs checks. If the storycheck step fails, the CI script fails as well.
 
 ## Output Directory Artifacts
 
@@ -217,7 +240,7 @@ or defaults to `./results`. It contains a number of helpful artifacts for debugg
 │  │
 │  ├─ storycheck.log — "Consolidated log file between test runner, browser and EVM."
 │  │
-│  ├─ tx_log_snapshot.json — "Snapshot of all blockchain write transactions."
+│  ├─ tx_snapshot.json — "Snapshot of all blockchain write transactions."
 │  │
 │  ├─ videos/ — "Video recordings of browser interactions."
 │  │
@@ -229,8 +252,41 @@ or defaults to `./results`. It contains a number of helpful artifacts for debugg
 │  │
 ```
 
+## Using as a GitHub Action
+
+You can integrate StoryCheck into your project's CI/CD workflow using the GitHub Action. This runs story checks automatically on pushes/pull requests, gating merges on pass/fail and uploading artifacts for review.
+
+Example workflow (add to `.github/workflows/storycheck.yml` in your repo):
+
+```yaml
+name: StoryCheck CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run StoryCheck
+        uses: GuardianUI/storycheck@v0.1.0  # Replace with your tagged version
+        with:
+          storypath: 'examples/sporosdao'  # Path to your story dir/file (relative to your repo)
+          output-dir: 'storycheck-results'  # Optional: Custom output dir
+      - name: Check if passed
+        if: ${{ steps.storycheck.outputs.passed != 'true' }}
+        run: echo "StoryCheck failed!" && exit 1
+```
+
+This example runs a check on the `sporosdao` story, fails the job if it doesn't pass, and uploads results as artifacts. Adapt `storypath` to your project's stories.
+
 ## Contributing
 
 Thanks for your interest in contributing!
 
 Please start with a [new discussion](https://github.com/GuardianUI/storycheck/discussions) before opening an Issue or Pull Request.
+

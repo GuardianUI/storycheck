@@ -1,5 +1,7 @@
+# interpreter/expected_results.py
 from .section import StorySection
-from .step import StepInterpreter, get_prompt_text
+from .step import StepInterpreter, get_prompt_text, get_prompt_link
+from slugify import slugify
 from loguru import logger
 from enum import Enum, auto
 from pprint import pformat as pf
@@ -7,18 +9,60 @@ import re
 import os
 from traceback import format_tb
 from pathlib import Path
-import shutil
 import json
+from PIL import Image
+from io import BytesIO
+from .utils import get_timestamped_path, save_screenshot
 
 
 class CheckStep(StepInterpreter):
-
-    async def aexit(self):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
-        Clean up any resources allocated for prerequisites
+        Clean up any resources allocated for checks
         """
         pass
 
+class VerifierCheck(CheckStep):
+    def __init__(self, user_agent=None, **kwargs):
+        super().__init__(user_agent=user_agent, **kwargs)
+        self.user_agent = user_agent
+
+    async def interpret_prompt(self, prompt):
+        text = get_prompt_text(prompt)
+        link = get_prompt_link(prompt)
+        logger.debug(f"Verifier prompt: {prompt}, link: {link}")
+        if link is None:
+            slug = slugify(text)
+            link = f"verifiers/{slug}.py"
+        story_dir = Path(os.environ.get("GUARDIANUI_STORY_DIR"))
+        logger.debug(f"Story dir: {story_dir}")
+        if story_dir:
+            verifier_path = story_dir / link
+        else:
+            verifier_path = Path(link)            
+        logger.debug(f"verifier_path: {verifier_path}")
+        results_dir = self.user_agent.results_dir  # From UserAgent        
+        if verifier_path.exists():
+            with open(verifier_path, 'r') as f:
+                code = f.read()
+            # Placeholder for execution (e.g., integrate code_execution tool or exec)
+            logger.info(f"Would execute verifier {verifier_path}: {code[:100]}...")
+            try:
+                local_scope = {}
+                exec(code, globals(), local_scope)
+                result = local_scope['verify'](results_dir)  # New standard signature
+                if isinstance(result, dict):
+                    if not result.get('passed', False):
+                        return result.get('error', "Verifier failed without error message")
+                elif isinstance(result, bool):
+                    if not result:
+                        return "Verifier failed without error message"
+                logger.info(f"Verifier {verifier_path} passed.")
+                return None
+            except Exception as e:
+                return f"Execution error: {str(e)}"
+        else:
+            return f"Verifier file not found: {verifier_path}"
 
 def cleanup_tx(tx):
     """
@@ -27,7 +71,6 @@ def cleanup_tx(tx):
     """
     for p in tx["writeTx"]['params']:
         p.pop('gasLimit', None)
-
 
 def tx_matches(txsaved, txnew):
     """
@@ -87,14 +130,9 @@ def tx_matches(txsaved, txnew):
             return False
     return True
 
-
-def compare_snapshots(saved=None, new=None):
-    assert saved is not None
-    assert new is not None
-    with open(saved) as f:
-        saved_json = json.load(f)
-    with open(new) as f:
-        new_json = json.load(f)
+def compare_snapshots(saved_json=None, new_json=None):
+    assert saved_json is not None
+    assert new_json is not None
     logger.debug('Saved tx snapshot:\n {s}', s=saved_json)
     logger.debug('New tx snapshot:\n {n}', n=new_json)
     if len(saved_json) == len(new_json):
@@ -115,49 +153,50 @@ def compare_snapshots(saved=None, new=None):
         logger.debug('Snapshots match.')
     return errors
 
-
 class SnapshotCheck(CheckStep):
+    def __init__(self, user_agent=None, **kwargs):
+        super().__init__(user_agent=user_agent, **kwargs)
+        self.user_agent = user_agent
 
     async def interpret_prompt(self, prompt):
-        logger.debug('snapshot check prompt:\n {prompt}', prompt=pf(prompt))
+        text = get_prompt_text(prompt)
+        logger.debug('snapshot check prompt:\n {prompt}', prompt=text)
         story_path = os.environ.get("GUARDIANUI_STORY_PATH")
         assert story_path is not None
         fpath = Path(story_path)
         saved_snapshot = fpath.with_suffix('.snapshot.json')
-        new_snapshot = Path('results/tx_log_snapshot.json')
         errors = None
-        if saved_snapshot.exists():
-            logger.debug('Found saved snapshot. Comparing transactions...')
-            errors = compare_snapshots(saved=saved_snapshot, new=new_snapshot)
-        else:
+        if not saved_snapshot.exists():
             logger.debug('No previous snapshot found. Saving snapshot.')
-            shutil.copyfile(new_snapshot, saved_snapshot)
+            with open(saved_snapshot, 'w') as outfile:
+                json.dump(self.user_agent.wallet_tx_snapshot, outfile)
+        else:
+            logger.debug('Found saved snapshot. Comparing transactions...')
+            with open(saved_snapshot, 'r') as infile:
+                saved_json = json.load(infile)
+            new_json = self.user_agent.wallet_tx_snapshot
+            errors = compare_snapshots(saved_json=saved_json, new_json=new_json)
         logger.debug('snapshot check completed.')
         return errors
 
-    async def aexit(self):
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
         """
         Clean up any resources allocated for prerequisites
         """
         pass
 
-
 class ExpectedResults(StorySection):
-
-    class StepInterpreter(StepInterpreter):
-        def interpret_prompt(self):
-            """
-            Interpret in computer code the intention of the natural language input prompt.
-            """
-            pass
-
     class CheckLabels(Enum):
         SNAPSHOT = auto()
+        VERIFIER = auto()
 
-    def __init__(self, **kwargs):
+    def __init__(self, user_agent=None, **kwargs):
+        assert user_agent is not None
         super().__init__(**kwargs)
+        self.user_agent = user_agent
         self.interpreters = {
-            self.CheckLabels.SNAPSHOT: SnapshotCheck(),
+            self.CheckLabels.SNAPSHOT: SnapshotCheck(user_agent=self.user_agent),
+            self.CheckLabels.VERIFIER: VerifierCheck(user_agent=self.user_agent)
         }
 
     def classify_prompt(self, prompt: list = None):
@@ -165,12 +204,15 @@ class ExpectedResults(StorySection):
         Classifies a natural language prompt in md-AST format as one of multiple predefined options.
         """
         assert prompt is not None
-        logger.debug('Classifying prompt:\n {prompt}', prompt=pf(prompt))
         text = get_prompt_text(prompt)
+        logger.debug(f'Classifying prompt: {text}')
+        link = get_prompt_link(prompt or [])
+        logger.debug(f'prompt link: {link}')
         text = text.lower().strip()
-        logger.debug('Prompt text: {text}', text=text)
         if re.search(r'match snapshot\b', text):
             return self.CheckLabels.SNAPSHOT
+        else:
+            return self.CheckLabels.VERIFIER
 
     def get_interpreter_by_class(self, prompt_class=None) -> StepInterpreter:
         """
@@ -195,4 +237,33 @@ class ExpectedResults(StorySection):
                          v=exception_value,
                          tb=pf(format_tb(exception_traceback)))
         for label, interpreter in self.interpreters.items():
-            await interpreter.aexit()
+            await interpreter.__aexit__(None, None, None)
+
+    async def run(self):
+        # Always save final screenshot and tx snapshot at start, create manifest
+        screenshots_dir = self.user_agent.results_dir / "screenshots"
+        screenshot_bytes = await self.user_agent.page.screenshot(full_page=True)
+        image = Image.open(BytesIO(screenshot_bytes))
+        screenshot_path = get_timestamped_path(screenshots_dir, file_name="final_ui_state")
+        save_screenshot(image, screenshot_path)
+        logger.debug(f"Final UI screenshot saved to {screenshot_path}")
+        
+        tx_snapshot_path = self.user_agent.results_dir / "tx_snapshot.json"
+        with open(tx_snapshot_path, 'w') as f:
+            logger.debug("Writing wallet tx snapshot to {f}",
+                         f=tx_snapshot_path)
+            logger.debug("Wallet tx snapshot value:\n {wts}",
+                         wts=self.user_agent.wallet_tx_snapshot)
+            json.dump(self.user_agent.wallet_tx_snapshot, f)
+
+        manifest = {
+            "tx_snapshot": str(tx_snapshot_path.relative_to(self.user_agent.results_dir)),
+            "final_screenshot": str(screenshot_path.relative_to(self.user_agent.results_dir))
+        }
+        manifest_path = self.user_agent.results_dir / "manifest.json"
+        with open(manifest_path, 'w') as f:
+            json.dump(manifest, f)
+
+        # proceed with normal run        
+        await super().run()
+
