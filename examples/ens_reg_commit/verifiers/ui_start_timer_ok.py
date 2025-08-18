@@ -25,7 +25,7 @@ def verify(results_dir):
     with Image.open(screenshot_path) as image:
         refexp_model = refexp_module.LocalRefExp().singleton
         _, center_point = refexp_model.process_refexp(
-            image=image, refexp="click 'Almost there'"
+            image=image, refexp="click 'Transaction Successful'"
         )
         logger.debug(f"RefExp located at: {center_point}")
     # Check if valid coordinates found (e.g., x,y > 0)
