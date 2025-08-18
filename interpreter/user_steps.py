@@ -9,7 +9,7 @@ from PIL import Image
 import os
 from pathlib import Path
 from slugify import slugify
-
+import asyncio
 
 class UserStepInterpreter(StepInterpreter):
 
@@ -134,6 +134,32 @@ class KeyPressStep(UserStepInterpreter):
         _, key = text.split(' ', 1)
         await page.keyboard.press(key)
 
+class WaitStep(UserStepInterpreter):
+    async def interpret_prompt(self, prompt):
+        """Parse and execute a wait step (e.g., 'Wait 5 seconds')."""
+        await super().interpret_prompt(prompt)
+        text = get_prompt_text(prompt)
+        # Regex to extract number and optional unit (seconds/minutes/s/m)
+        match = re.search(r"wait\s+(\d+)\s*(seconds?|minutes?|s|m)?", text.lower())
+        if not match:
+            logger.warning(f"Invalid wait format: {text}. Skipping.")
+            return None
+        
+        duration = int(match.group(1))
+        unit = match.group(2) or "s"  # Default to seconds
+        if unit.startswith("m"):
+            duration *= 60  # Convert minutes to seconds
+        
+        if duration <= 0:
+            logger.warning(f"Invalid duration ({duration}) in: {text}. Skipping.")
+            return None
+        
+        logger.debug(f"Waiting for {duration} seconds as per: {text}")
+        await asyncio.sleep(duration)
+        logger.debug(f"Wait complete for: {text}")
+        
+        return {"wait_duration": duration}
+
 
 class UserStepsSection(StorySection):  # Renamed to match import in __init__.py
 
@@ -144,6 +170,7 @@ class UserStepsSection(StorySection):  # Renamed to match import in __init__.py
         KB_INPUT = auto()
         KEYPRESS = auto()
         REVIEW = auto()
+        WAIT = auto()
 
     def __init__(self, user_agent=None, **kwargs):
         super().__init__(**kwargs)
@@ -155,7 +182,8 @@ class UserStepsSection(StorySection):  # Renamed to match import in __init__.py
             self.StepLabels.KB_INPUT: KBInputStep(user_agent=user_agent),
             self.StepLabels.SCROLL: ScrollStep(
                 user_agent=user_agent),
-            self.StepLabels.KEYPRESS: KeyPressStep(user_agent=user_agent)
+            self.StepLabels.KEYPRESS: KeyPressStep(user_agent=user_agent),
+            self.StepLabels.WAIT: WaitStep(user_agent=user_agent)
         }
 
     def classify_prompt(self, prompt: list = None):
@@ -169,6 +197,8 @@ class UserStepsSection(StorySection):  # Renamed to match import in __init__.py
             return self.StepLabels.SCROLL
         elif text.startswith('press'):
             return self.StepLabels.KEYPRESS
+        elif text.startswith("wait"):
+            return self.StepLabels.WAIT
         elif text.startswith('review'):
             return self.StepLabels.REVIEW
         elif re.match(r'type\b|input\b|enter\b', text):
