@@ -20,6 +20,10 @@ StoryCheck's north star 🌟: becoming the default tool for Ethereum dApp e2e te
 
 When the project was originally founded in 2023, dApp developers were mainly focused on smart contract security. However since then front end hacks have become more prominent culminating with a $1.5B hack of Bybit protocol due to javascript injected malicious code in the Safe multisig front end which almost all projects use to manage their treasuries and have therefore been vulnerable to the same hack. StoryCheck is now relevant more than ever as serious institutional funds are pouring into the Ethereum ecosystem even surpassing Bitcoin ETF inflows in July 2025.
 
+## State of the Art VLM
+
+To get a sense of the capability of modern local VLMs, try the following [UI referencing playground](https://huggingface.co/spaces/tianbaoxiexxx/Jedi)
+
 
 ## Example User Story Input
 
