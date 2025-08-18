@@ -2,7 +2,7 @@
 
 ## What is StoryCheck
 
-StoryCheck for Web3 apps based on Ethereum. Experimental app testing playground as well as an API served via [Gradio](https://github.com/gradio-app/gradio) on port `7860`.
+StoryCheck enables end-to-end natural language user story verification for Web3 apps.
 
 StoryCheck promotes smooth collaboration between dApp developers, testers, document writers, product managers and support teams by enabling use of natural language for executable and verifiable user stories. StoryCheck reduces the need for expertise in lower level e2e test frameworks and brittle test code such as Synpress, Cypress, Playwright, Selenium, etc. Brittle UI testing code often leads to poor return on invested effort, which leaves front ends vulnerable to exploits. StoryCheck changes that by focusing on UX intention and stable UI flows rather than detailed CSS and HTML inspection.
 
