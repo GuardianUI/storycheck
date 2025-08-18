@@ -22,9 +22,3 @@ jobs:
       - name: Check if StoryCheck passed
         if: ${{ steps.storycheck.outputs.passed != 'true' }}
         run: echo "StoryCheck failed on ENS example!" && exit 1
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: storycheck-results-${{ github.run_id }}-${{ inputs.storypath }}
-          path: ${{ inputs.output-dir }}
