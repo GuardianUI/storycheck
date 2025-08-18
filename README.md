@@ -20,54 +20,49 @@ StoryCheck's north star 🌟: becoming the default tool for Ethereum dApp e2e te
 
 When the project was originally founded in 2023, dApp developers were mainly focused on smart contract security. However since then front end hacks have become more prominent culminating with a $1.5B hack of Bybit protocol due to javascript injected malicious code in the Safe multisig front end which almost all projects use to manage their treasuries and have therefore been vulnerable to the same hack. StoryCheck is now relevant more than ever as serious institutional funds are pouring into the Ethereum ecosystem even surpassing Bitcoin ETF inflows in July 2025.
 
-## Walkthrough Video
-
-[![StoryCheck Walkthrough Video](https://img.youtube.com/vi/gZ23iDqlfX4/0.jpg)](https://www.youtube.com/watch?v=gZ23iDqlfX4)
 
 ## Example User Story Input
 
 ```md
-# Creating a new DAO LLC via SporosDAO.xyz on Goerli Test Net
+
+# Register a new ENS domain
+
+This use story walks through an initial domain name search "storychecktest" and successful registration on a mobile device.
 
 ## Prerequisites
 
-- Chain
-  - Id 5
-  - Block 8856964
+1. Chain
+   - Id 1
+   - RPC https://lb.drpc.org/ogrpc?network=ethereum&dkey=****
+   - Block 23086523   
+2. Browser
+   - Pixel 7
 
 ## User Steps
 
-1. Browse to https://app.sporosdao.xyz/
-1. Click on Create a new company button
-1. Click on Go! right arrow button left of Available
-1. Select On-chain name text field
-1. Type Test DAO
-1. Select Token Symbol text field
-1. Type TDO
-1. Click on Continue button in the bottom right corner
-1. Select Address text field above Enter the wallet address
-1. Type 0x5389199D5168174FA177908685FbD52A7138Ed1a
-1. Select text field below Initial Tokens
-1. Type 1200
-1. Select text field under Email
-1. Type test@email.com
-1. Scroll down
-1. Click on Continue button
-1. Click on Continue button at the top
-1. Scroll up
-1. Click on the checkbox left of Agree
-1. Scroll down
-1. Click on Continue button
-1. Scroll up
-1. Click on Deploy Now button
-1. Press Tab
-1. Press Tab
+1. Browse to https://app.ens.domains/
+1. Click Accept
+1. Click on search box
+1. Type storychecktest
 1. Press Enter
-1. Press Home
+1. Click Connect
+1. Click Browser Wallet
+1. Scroll down
+1. Select Ethereum payment method
+1. Click Next
+1. Click Skip Profile
+1. Scroll down
+1. Click Begin
+1. Click "Open Wallet"
+1. Wait 5 seconds
 
 ## Expected Results
 
-- Wallet transactions match snapshot
+- Verify commitment transaction succeeded [verifier](verifiers/tx_success.py)
+- Verify commitment timestamp set [verifier](verifiers/commitment_timestamp.py)
+- App should display 'Transaction Successful' [verifier](verifiers/ui_start_timer_ok.py)
+
+
 ```
 
 ## Prerequisites Section
@@ -84,30 +79,6 @@ In order to fund the mock wallet with other tokens (e.g. USDC, DAI, NFTs), the `
 
 Often Web3 Apps use front end libraries such as [wagmi.sh](https://wagmi.sh/react/getting-started) to access current chain state. When that is the case, the user story should include the exact RPC URL used by the front end as a prerequisite. That allows StoryCheck to intercept all calls directed to the RPC and reroute towards the local blockchain fork. This is important to ensure that the app reads and writes from/to the local chain fork.
 
-### Example 1. Etheremum Mainnet test
-
-The following example sets up a local fork of ETH Mainnet starting from the latest block using a default RPC.
-
-```markdown
-## Prerequisites
-
-- Chain
-  - Id 1
-```
-
-### Example 2. Goerli test with specific block and RPC
-
-The following example sets up a local fork of Goerli Testnet starting from the given block number and using a given RPC URL.
-
-```markdown
-## Prerequisites
-
-- Chain
-  - Id 5
-  - Block 8856964
-  - RPC https://eth-goerli.g.alchemy.com/v2/3HpUm27w8PfGlJzZa4jxnxSYs9vQNMMM
-```
-
 ## User Story Section
 
 The format of user steps in this section resembles the HOWTO documentation of a web3 app. Teams may use the same markdown in their documentation (e.g. gitbook, notion, docusauros) and execute it with StoryCheck to make sure that the latest web app behavior is in sync with docs.
@@ -121,11 +92,17 @@ Each step in a user story is classified as an action prompt from the following s
 - `Type` - prompts that start with the keyword `type`, `input` or `enter` (case insensitive) followed by a string are interpreted as a keyboard input action. For example `Type 1000` or `Type MyNewDAO`. For implementation details, see [Playwright type](https://playwright.dev/python/docs/api/class-keyboard#keyboard-type).
 - `Scroll` - prompts that start with `scroll` followed by `up` or `down` are interpreted respectively as `Press PageDown` and `Press PageUp`
 - `Press` - prompts that start with `press` followed by a keyboard key code (`F1` - `F12`, `Digit0` - `Digit9`, `KeyA` - `KeyZ`, `Backquote`, `Minus`, `Equal`, `Backslash`, `Backspace`, `Tab`, `Delete`, `Escape`, `ArrowDown`, `End`, `Enter`, `Home`, `Insert`, `PageDown`, `PageUp`, `ArrowRight`, `ArrowUp`) are interpreted as a single key press action. For further details, see [Playwright press](https://playwright.dev/python/docs/api/class-keyboard#keyboard-press).
+- `Wait` - prompts that start with `wait` followed by a number and `seconds` or `minutes` result in a pause that is useful when the web3 app UI is awaiting blockchain confirmation.
 
 ## Expected Results Section
 
-Expected Results section currently implements a default transaction snapshot check similar to [jest snapshot matching](https://jestjs.io/docs/snapshot-testing).
-The first time a test is run, all write transactions going through `window.ethereum` are recorded and saved. Subsequent runs must match these write transactions. If there is a mismatch, then one of three changes took place in the UI under test:
+Expected Results section provides several ways to check the results of running a user story.
+
+### Snapshot check
+
+StoryCheck saves a transaction snapshot check similar to [jest snapshot matching](https://jestjs.io/docs/snapshot-testing).
+The first time a test is run, all write transactions going through `window.ethereum` are recorded and saved. Subsequent runs must match these write transactions. 
+If there is a mismatch, then one of three changes took place in the UI under test:
 
 - Developers changed the frontend code in a significant way. This warrants a careful code review and update of the user stories.
 - There is malicious injected code that changes the behavior of the app. A big **red alert** is in order! App infrastructure is compromised: hosting providers, third party libraries, or build tools.
@@ -133,7 +110,11 @@ The first time a test is run, all write transactions going through `window.ether
 
 ### Verifiers
 
-Story verifiers are created at the story ideation stage in collaboration with frontier AI models. They are referenced in the **Expected Results** section of a `story.md` file and saved under `/verifiers` sub directory.
+Sometimes web3 apps use randomization (e.g. ENS registration commit step), which makes snapshots different on each run. In this case and generally when more advanced verification is needed, 
+StoryCheck allows custom verifiers. Usually frontier models are very good at understanding the intention of user stories, suggesting and implementing custom verifiers.
+As long as the intended behavior of a user story remains stable in relation to onchain transactions, the verifiers code also remains robust. Inherently blockchain code is a lot more robust and stable across app iterations than UI code.
+
+Verifiers are referenced in the **Expected Results** section of a `story.md` file and saved under `/verifiers` sub directory.
 
 ```ml
 ├─ astory/
