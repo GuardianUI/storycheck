@@ -1,6 +1,6 @@
-# Register a new ENS domain
+# Create a new Safe Account
 
-This use story walks through creating a new Safe account with 1 signer.
+This user story walks through creating a new Safe account with 1 signer.
 
 ## Prerequisites
 
@@ -31,4 +31,8 @@ This use story walks through creating a new Safe account with 1 signer.
 1. Wait 5 seconds
 
 ## Expected Results
+
+## Expected Results
+
+- Verify account created [verifier](verifiers/tx_success.py)
 

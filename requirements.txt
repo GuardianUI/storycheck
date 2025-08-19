@@ -18,3 +18,4 @@ bitsandbytes
 huggingface_hub
 transformers>=4.36.0
 accelerate>=1.9.0
+web3~=7.13.0

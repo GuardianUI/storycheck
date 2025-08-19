@@ -15,9 +15,9 @@ jobs:
       - name: Run StoryCheck Action (ENS Example)
         id: storycheck
         uses: ./  # Test locally; in prod, use @tag
-#         uses: GuardianUI/storycheck@v0.1.0  # Replace with your tagged version
+#         uses: GuardianUI/storycheck@v0.1.2
         with:
-          storypath: 'examples/ens_reg_commit'  # Example ENS story dir from repo
+          storypath: 'examples/safe_create_account'
           output-dir: 'results'
       - name: Check if StoryCheck passed
         if: ${{ steps.storycheck.outputs.passed != 'true' }}

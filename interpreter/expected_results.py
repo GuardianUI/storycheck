@@ -48,9 +48,13 @@ class VerifierCheck(CheckStep):
             # Placeholder for execution (e.g., integrate code_execution tool or exec)
             logger.info(f"Would execute verifier {verifier_path}: {code[:100]}...")
             try:
-                local_scope = {}
-                exec(code, globals(), local_scope)
-                result = local_scope['verify'](results_dir)  # New standard signature
+                # local_scope = {}
+                # exec(code, globals(), local_scope)
+                # result = local_scope['verify'](results_dir)  # New standard signature
+                # use shared scope so verifier can access storycheck context
+                scope = {}
+                exec(code, scope)
+                result = scope['verify'](results_dir)  # New standard signature                
                 if isinstance(result, dict):
                     if not result.get('passed', False):
                         return result.get('error', "Verifier failed without error message")
