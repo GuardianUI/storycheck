@@ -66,13 +66,14 @@ class LocalChain:
             block_args = ["--fork-block-number", self.block_n]
         else:
             block_args = []
-        if self.rpc_url is None:
-            self.rpc_url = self.RPC_URLs.get(self.chain_id)
-            assert self.rpc_url is not None, \
-                f"""
-                No known RPC URL for Chain ID: {self.chain_id}.
-                Please provide one via explicit RPC parameter in the story file.
-                """
+        # It is unreliable to use the app RPC for anvil fork, so we use a separate RPC URL.
+        # if self.rpc_url is None:
+        self.rpc_url = self.RPC_URLs.get(self.chain_id)
+        assert self.rpc_url is not None, \
+            f"""
+            No known RPC URL for Chain ID: {self.chain_id}.
+            Please provide one via explicit RPC parameter in the story file.
+            """
         rpc_args = ["--fork-url", self.rpc_url]
 
         logger.debug(
