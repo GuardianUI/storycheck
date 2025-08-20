@@ -24,3 +24,4 @@ jobs:
       - name: Check if StoryCheck passed
         if: ${{ steps.storycheck.outputs.passed != 'true' }}
         run: echo "StoryCheck failed on ENS example!" && exit 1
+ 
