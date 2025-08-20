@@ -6,7 +6,9 @@ on:
     branches: [ main, dev ]
   pull_request:
     branches: [ main, dev ]
-
+  schedule:
+    - cron: '0 0 * * 1' # Runs every Monday at 00:00 UTC
+        
 jobs:
   check-example:
     runs-on: ubuntu-latest
