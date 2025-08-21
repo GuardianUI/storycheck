@@ -5,6 +5,7 @@ import { parseEther } from 'viem'
 import { usePublicClient } from 'wagmi'
 import { normalize } from 'viem/ens'
 import { mainnet } from 'viem/chains'
+import { useWaitForTransactionReceipt } from 'wagmi'
 
 export default function App() {
   const { isConnected } = useAccount()
@@ -12,26 +13,34 @@ export default function App() {
   const { address } = useAccount()
   const { sendTransaction, isLoading, error } = useSendTransaction()
   const chainId = useChainId()
+  const [hasInitialSwitch, setHasInitialSwitch] = useState(false)
+  const [pendingHash, setPendingHash] = useState(null)
   const chains = useChains()
   const { switchChain } = useSwitchChain()
   const currentChain = chains.find(c => c.id === chainId) || mainnet
-  const explorerSlugs = {
-    1: 'eth', // Mainnet
-    11155111: 'sepolia', // Sepolia
-    // Add more chains as needed
-  }
-  const chainSlug = explorerSlugs[chainId] || 'eth' // Default to eth
-
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
   const client = usePublicClient({ chainId: mainnet.id })
   const [successHash, setSuccessHash] = useState(null)
   const [rejectionError, setRejectionError] = useState(null)
-  const [hasInitialSwitch, setHasInitialSwitch] = useState(false)
+  const explorerMap = { 1: 'eth', 11155111: 'sepolia', // Add more as needed
+  }
+  const chainSlug = explorerMap[chainId] || 'eth'
+
+  const { data: receipt } = useWaitForTransactionReceipt({ hash: pendingHash })
+
+  useEffect(() => {
+    if (receipt) {
+      setSuccessHash(receipt.transactionHash)
+      setPendingHash(null) // Clear pending
+    }
+  }, [receipt])
+
+  const clearMessages = () => { setSuccessHash(null); setRejectionError(null); }
 
   const handleSend = async () => {
     if (to && amount) {
-      let resolvedTo = to;
+      let resolvedTo = to
       if (to.endsWith('.eth')) {
         try {
           resolvedTo = await client.getEnsAddress({ name: normalize(to) });
@@ -39,30 +48,28 @@ export default function App() {
             throw new Error(`ENS name ${to} could not be resolved`);
           }
         } catch (err) {
-          console.error('ENS resolution failed:', err.message);
+          console.error('ENS resolution failed:', err.message)
           return;
         }
       }
-      sendTransaction({
-        to: resolvedTo,
-        value: parseEther(amount),
-        chainId,
-        account: address,
-      },
-      {
-        onSuccess: (data) => {
-          setSuccessHash(data.hash)
-        },
-        onError: (err) => {
-          if (err.name === 'UserRejectedRequestError') {
-            setRejectionError('Transaction rejected in wallet.')
-          } else {
-            setRejectionError(`Transaction error: ${err.message}`)
-          }
-        },
+      try {
+        clearMessages()
+        const hash = await sendTransaction({
+          to: resolvedTo,
+          value: parseEther(amount),
+          chainId,
+          account: address,
+        })
+        setPendingHash(hash) // Set pending hash to wait for confirmation
+        console.log('Transaction sent:', { to: resolvedTo, amount, address, hash })
+      } catch (err) {
+        if (err.name === 'UserRejectedRequestError' || err.message.includes('rejected')) {
+          setRejectionError('Transaction rejected in wallet.')
+        } else {
+          setRejectionError(`Transaction error: ${err.message}`)
+        }
+        console.error('Transaction failed:', err.message)
       }
-      )
-      console.log('Transaction sent:', { to: resolvedTo, amount, address })
     }
     if (error) console.error('Transaction failed:', error.message)
   }
@@ -123,7 +130,7 @@ export default function App() {
             </div>
             {successHash && (
               <div className="mt-2 text-green-500">
-                Transaction successful! View on <a href={`https://www.oklink.com/${chainSlug}/tx/${successHash}`} target="_blank" rel="noopener noreferrer" className="underline">OKLink</a>
+                Transaction successful! View on <a href={`https://${chainSlug}.blockscout.com/tx/${successHash}`} target="_blank" rel="noopener noreferrer" className="underline">Blockscout</a>
               </div>
             )}
             {rejectionError && (
