@@ -11,7 +11,7 @@ export default function App() {
   const { isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   const { address } = useAccount()
-  const { data: hash, isPending, sendTransactionAsync, error} = useSendTransaction()
+  const { data: hash, isPending, sendTransaction, error} = useSendTransaction()
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
     useWaitForTransactionReceipt({
       hash,
@@ -56,7 +56,7 @@ export default function App() {
       }
       try {
         clearMessages()
-        await sendTransactionAsync({
+        sendTransaction({
           to: resolvedTo,
           value: parseEther(amount),
           chainId,
@@ -91,7 +91,7 @@ export default function App() {
             className="bg-blue-500 text-white px-4 py-2 rounded"
             onClick={() => connect({ connector: connectors[0] })}
           >
-            {isLoading ? 'Connecting...' : 'Connect Wallet'}
+            Connect Wallet
           </button>
         ) : (
           <div>
@@ -121,7 +121,7 @@ export default function App() {
               Current Network:
               <select
                 value={chainId}
-                onChange={(e) => switchChain({ chainId: Number(e.target.value) })}
+                onChange={(e) => {switchChain({ chainId: Number(e.target.value) })}}
                 className="ml-2 border p-1"
               >
                 {chains.map((chain) => (
