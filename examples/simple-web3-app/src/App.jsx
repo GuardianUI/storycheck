@@ -11,7 +11,7 @@ export default function App() {
   const { isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   const { address } = useAccount()
-  const { sendTransaction, isLoading, error } = useSendTransaction()
+  const { sendTransaction, sendTransactionAsync, isLoading, error } = useSendTransaction()
   const chainId = useChainId()
   const [hasInitialSwitch, setHasInitialSwitch] = useState(false)
   const [pendingHash, setPendingHash] = useState(null)
@@ -20,9 +20,10 @@ export default function App() {
   const currentChain = chains.find(c => c.id === chainId) || mainnet
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
-  const client = usePublicClient({ chainId: mainnet.id })
+  const client = usePublicClient({ chainId: mainnet.id, config: { timeout: 5000 } }) // Add timeout to prevent long hangs
   const [successHash, setSuccessHash] = useState(null)
   const [rejectionError, setRejectionError] = useState(null)
+  const [ensError, setEnsError] = useState(null)
   const explorerMap = { 1: 'eth', 11155111: 'sepolia', // Add more as needed
   }
   const chainSlug = explorerMap[chainId] || 'eth'
@@ -31,30 +32,38 @@ export default function App() {
 
   useEffect(() => {
     if (receipt) {
+      if (receipt.status === 'reverted') {
+        setRejectionError('Transaction reverted on-chain.');
+        setPendingHash(null);
+        return;
+      }
       setSuccessHash(receipt.transactionHash)
       setPendingHash(null) // Clear pending
     }
   }, [receipt])
 
   const clearMessages = () => { setSuccessHash(null); setRejectionError(null); }
+  const clearEnsError = () => setEnsError(null);
 
   const handleSend = async () => {
     if (to && amount) {
       let resolvedTo = to
       if (to.endsWith('.eth')) {
         try {
+          clearEnsError();
           resolvedTo = await client.getEnsAddress({ name: normalize(to) });
           if (!resolvedTo) {
             throw new Error(`ENS name ${to} could not be resolved`);
           }
         } catch (err) {
           console.error('ENS resolution failed:', err.message)
+          setEnsError(err.message);
           return;
         }
       }
       try {
         clearMessages()
-        const hash = await sendTransaction({
+        const { hash } = await sendTransactionAsync({
           to: resolvedTo,
           value: parseEther(amount),
           chainId,
@@ -128,6 +137,11 @@ export default function App() {
                 ))}
               </select>
             </div>
+            {ensError && (
+              <div className="mt-2 text-red-500">
+                ENS resolution failed: {ensError}
+              </div>
+            )}
             {successHash && (
               <div className="mt-2 text-green-500">
                 Transaction successful! View on <a href={`https://${chainSlug}.blockscout.com/tx/${successHash}`} target="_blank" rel="noopener noreferrer" className="underline">Blockscout</a>
@@ -136,6 +150,14 @@ export default function App() {
             {rejectionError && (
               <div className="mt-2 text-red-500">
                 {rejectionError}
+              </div>
+            )}
+            {pendingHash && (
+              <div className="mt-2 text-yellow-500">
+                Transaction pending! View on{' '}
+                <a href={`https://${chainSlug}.blockscout.com/tx/${pendingHash}`} target="_blank" rel="noopener noreferrer" className="underline">
+                  Blockscout
+                </a>
               </div>
             )}
           </div>
