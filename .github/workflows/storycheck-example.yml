@@ -19,12 +19,6 @@ jobs:
       - name: Install pnpm dependencies
         run: pnpm install
         working-directory: examples/simple-web3-app
-      - name: Start Vite server and verify
-        run: |
-          pnpm dev &
-          sleep 5
-          curl --retry 5 --retry-delay 2 --retry-max-time 30 http://localhost:5173
-        working-directory: examples/simple-web3-app
       - name: Run StoryCheck
         uses: ./
         # uses: GuardianUI/storycheck@v0.1.2  # For third-party apps, replace with the latest stable tagged version

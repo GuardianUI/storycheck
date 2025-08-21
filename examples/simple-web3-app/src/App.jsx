@@ -1,6 +1,6 @@
 // examples/simple-web3-app/src/App.jsx
 import { useState, useEffect } from 'react'
-import { useAccount, useConnect, useSendTransaction, useChainId, useChains, useSwitchChain } from 'wagmi'
+import { BaseError, useAccount, useConnect, useSendTransaction, useChainId, useChains, useSwitchChain } from 'wagmi'
 import { parseEther } from 'viem'
 import { usePublicClient } from 'wagmi'
 import { normalize } from 'viem/ens'
@@ -11,65 +11,57 @@ export default function App() {
   const { isConnected } = useAccount()
   const { connect, connectors } = useConnect()
   const { address } = useAccount()
-  const { sendTransaction, sendTransactionAsync, isLoading, error } = useSendTransaction()
+  const { data: hash, isPending, sendTransactionAsync, error} = useSendTransaction()
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    })
+
   const chainId = useChainId()
   const [hasInitialSwitch, setHasInitialSwitch] = useState(false)
-  const [pendingHash, setPendingHash] = useState(null)
   const chains = useChains()
   const { switchChain } = useSwitchChain()
   const currentChain = chains.find(c => c.id === chainId) || mainnet
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
-  const client = usePublicClient({ chainId: mainnet.id, config: { timeout: 5000 } }) // Add timeout to prevent long hangs
-  const [successHash, setSuccessHash] = useState(null)
+  const client = usePublicClient({ chainId: mainnet.id })
   const [rejectionError, setRejectionError] = useState(null)
-  const [ensError, setEnsError] = useState(null)
   const explorerMap = { 1: 'eth', 11155111: 'sepolia', // Add more as needed
   }
   const chainSlug = explorerMap[chainId] || 'eth'
 
-  const { data: receipt } = useWaitForTransactionReceipt({ hash: pendingHash })
-
-  useEffect(() => {
-    if (receipt) {
-      if (receipt.status === 'reverted') {
-        setRejectionError('Transaction reverted on-chain.');
-        setPendingHash(null);
-        return;
-      }
-      setSuccessHash(receipt.transactionHash)
-      setPendingHash(null) // Clear pending
-    }
-  }, [receipt])
-
-  const clearMessages = () => { setSuccessHash(null); setRejectionError(null); }
-  const clearEnsError = () => setEnsError(null);
+  const clearMessages = () => { setRejectionError(null); }
 
   const handleSend = async () => {
+    const timeoutPromise = (ms, promise) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('ENS resolution timed out')), ms))
+      ]);
+    };
+
     if (to && amount) {
       let resolvedTo = to
       if (to.endsWith('.eth')) {
         try {
-          clearEnsError();
-          resolvedTo = await client.getEnsAddress({ name: normalize(to) });
+          resolvedTo = await timeoutPromise(5000, client.getEnsAddress({ name: normalize(to) }));
           if (!resolvedTo) {
             throw new Error(`ENS name ${to} could not be resolved`);
           }
         } catch (err) {
           console.error('ENS resolution failed:', err.message)
-          setEnsError(err.message);
+          setRejectionError(err.message);
           return;
         }
       }
       try {
         clearMessages()
-        const { hash } = await sendTransactionAsync({
+        await sendTransactionAsync({
           to: resolvedTo,
           value: parseEther(amount),
           chainId,
           account: address,
         })
-        setPendingHash(hash) // Set pending hash to wait for confirmation
         console.log('Transaction sent:', { to: resolvedTo, amount, address, hash })
       } catch (err) {
         if (err.name === 'UserRejectedRequestError' || err.message.includes('rejected')) {
@@ -119,14 +111,14 @@ export default function App() {
               className="border p-2 mb-2 w-full"
             />
             <button
+              disabled={isPending}
               className="bg-green-500 text-white px-4 py-2 rounded"
               onClick={handleSend}
             >
-              {isLoading ? 'Sending...' : 'Send ETH'}
-              {error && <div className="text-red-500">{error.message}</div>}
+              {isPending ? 'Sending...' : 'Send ETH'}
             </button>
             <div className="mt-4">
-              Current Network: {currentChain.name}
+              Current Network:
               <select
                 value={chainId}
                 onChange={(e) => switchChain({ chainId: Number(e.target.value) })}
@@ -137,14 +129,11 @@ export default function App() {
                 ))}
               </select>
             </div>
-            {ensError && (
-              <div className="mt-2 text-red-500">
-                ENS resolution failed: {ensError}
-              </div>
-            )}
-            {successHash && (
+            {isConfirming && <div>Waiting for confirmation...</div>}
+            {isConfirmed && <div>Transaction confirmed.</div>}            
+            {hash && (
               <div className="mt-2 text-green-500">
-                Transaction successful! View on <a href={`https://${chainSlug}.blockscout.com/tx/${successHash}`} target="_blank" rel="noopener noreferrer" className="underline">Blockscout</a>
+                View transaction on <a href={`https://${chainSlug}.blockscout.com/tx/${hash}`} target="_blank" rel="noopener noreferrer" className="underline">Blockscout</a>
               </div>
             )}
             {rejectionError && (
@@ -152,14 +141,7 @@ export default function App() {
                 {rejectionError}
               </div>
             )}
-            {pendingHash && (
-              <div className="mt-2 text-yellow-500">
-                Transaction pending! View on{' '}
-                <a href={`https://${chainSlug}.blockscout.com/tx/${pendingHash}`} target="_blank" rel="noopener noreferrer" className="underline">
-                  Blockscout
-                </a>
-              </div>
-            )}
+            {error && <div className="text-red-500">{error.message}</div>}
           </div>
         )}
       </div>
