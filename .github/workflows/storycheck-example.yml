@@ -1,29 +1,34 @@
-# File: .github/workflows/storycheck-example.yml
-name: StoryCheck Example CI
+name: StoryCheck Simple Web3 App
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main, dev ]
-  schedule:
-    - cron: '0 0 * * 1' # Runs every Monday at 00:00 UTC
-        
+    branches: [main, dev]
+
 jobs:
-  check-example:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run StoryCheck Action (ENS Example)
-        id: storycheck
-        uses: ./  # Test locally; in prod, use @tag
-#         uses: GuardianUI/storycheck@v0.1.2
-        env: 
-          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+      - name: Install pnpm dependencies
+        run: pnpm install
+        working-directory: examples/simple-web3-app
+      - name: Start Vite server and verify
+        run: |
+          pnpm dev &
+          sleep 5
+          curl --retry 5 --retry-delay 2 --retry-max-time 30 http://localhost:5173
+        working-directory: examples/simple-web3-app
+      - name: Run StoryCheck
+        uses: ./
+        # uses: GuardianUI/storycheck@v0.1.2  # For third-party apps, replace with the latest stable tagged version
         with:
-          storypath: 'examples/safe_create_account'
-          output-dir: 'results'
-      - name: Check if StoryCheck passed
+          storypath: 'examples/simple-web3-app'
+          start-command: 'pnpm dev'
+          wait-on: 'http://localhost:5173'
+          wait-on-timeout: '60'
+          app-working-directory: 'examples/simple-web3-app'
+      - name: Check if passed
         if: ${{ steps.storycheck.outputs.passed != 'true' }}
-        run: echo "StoryCheck failed on ENS example!" && exit 1
- 
+        run: echo "StoryCheck failed!" && exit 1

@@ -81,7 +81,7 @@ In order to fund the mock wallet with other tokens (e.g. USDC, DAI, NFTs), the `
 
 ### Custom RPC
 
-Often Web3 Apps use front end libraries such as [wagmi.sh](https://wagmi.sh/react/getting-started) to access current chain state. When that is the case, the user story should include the exact RPC URL used by the front end as a prerequisite. That allows StoryCheck to intercept all calls directed to the RPC and reroute towards the local blockchain fork. This is important to ensure that the app reads and writes from/to the local chain fork.
+Often Web3 Apps use front end libraries such as [wagmi.sh](https://wagmi.sh/react/getting-started) to access current chain state. When that is the case, the user story should include the exact RPC URL used by the front end as a prerequisite. That allows StoryCheck to intercept all calls directed to the RPC and reroute towards the local chain fork. This is important to ensure that the app reads and writes from/to the local chain fork.
 
 ## User Story Section
 
@@ -179,6 +179,7 @@ To set up the environment locally using `uv` (a fast Python package manager), ru
 chmod +x setup_env.sh
 ./setup_env.sh
 source .venv/bin/activate
+```
 
 ### Command line arguments
 
@@ -267,11 +268,62 @@ jobs:
         run: echo "StoryCheck failed!" && exit 1
 ```
 
-This example runs a check on the `sporosdao` story, fails the job if it doesn't pass, and uploads results as artifacts. Adapt `storypath` to your project's stories.
+### Starting a Local App in the Workflow
+
+If your web3 app needs to run locally during the check (e.g., for testing against a dev server), use these optional inputs:
+- `start-command`: Command to start the app (e.g., `yarn workspace @my-app start`).
+- `wait-on`: URL to poll until ready (e.g., `http://localhost:3000`).
+- `wait-on-timeout`: Timeout in seconds (default: 60).
+- `app-working-directory`: Directory for the start command (relative to your repo, default: `.`).
+
+The action starts the app in the background, waits for the URL to respond with 200 OK, runs StoryCheck (ensure your story.md uses local URLs like `Browse to http://localhost:3000/`), then stops the app. App logs are captured in `app.log` and uploaded as part of artifacts.
+
+Example workflow to test a simple web3 app that sends ETH to a user-entered ENS name or address:
+
+```yaml
+name: StoryCheck Simple Web3 App
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pnpm dependencies
+        run: pnpm install
+        working-directory: examples/simple-web3-app
+      - name: Run StoryCheck
+        uses: GuardianUI/storycheck@v0.1.2  # Replace with the latest stable tagged version
+        with:
+          storypath: 'examples/simple-web3-app'
+          start-command: 'pnpm dev'
+          wait-on: 'http://localhost:5173'
+          wait-on-timeout: '60'
+          app-working-directory: 'examples/simple-web3-app'
+      - name: Check if passed
+        if: ${{ steps.storycheck.outputs.passed != 'true' }}
+        run: echo "StoryCheck failed!" && exit 1
+```
+
+This example runs StoryCheck on the `simple-web3-app` example, which tests a web3 app that connects a wallet, allows entering an ENS name or address (e.g., `vitalik.eth`) and an ETH amount (e.g., 0.01), and sends the transaction. The user story (`examples/simple-web3-app/story.md`) includes steps like:
+
+- Browse to http://localhost:5173/
+- Click Connect Wallet
+- Type vitalik.eth in the ENS name or address input
+- Type 0.01 in the ETH amount input
+- Click Send ETH
+- Wait 5 seconds
+- Transaction succeeded with 0.01 ETH sent to vitalik.eth resolving to 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045 - [verifier](verifiers/tx_success.py)
+
+The action starts the Vite dev server (`pnpm dev`), waits for `http://localhost:5173`, runs the story, and automatically uploads artifacts (including `app.log` and `results/`). The job fails if StoryCheck doesn’t pass.
 
 ## Contributing
 
 Thanks for your interest in contributing!
 
 Please start with a [new discussion](https://github.com/GuardianUI/storycheck/discussions) before opening an Issue or Pull Request.
-

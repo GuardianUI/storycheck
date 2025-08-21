@@ -1,0 +1,27 @@
+{
+  "name": "simple-web3-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@wagmi/connectors": "^5.9.4",
+    "viem": "^2.34",
+    "wagmi": "^2.16",
+    "@tanstack/react-query": "^5.85"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13",
+    "vite": "^5.4.8"
+  },
+  "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad"
+}
