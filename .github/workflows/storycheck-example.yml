@@ -20,6 +20,7 @@ jobs:
         run: pnpm install
         working-directory: examples/simple-web3-app
       - name: Run StoryCheck
+        id: storycheck      
         uses: ./
         # uses: GuardianUI/storycheck@v0.1.2  # For third-party apps, replace with the latest stable tagged version
         env: 
