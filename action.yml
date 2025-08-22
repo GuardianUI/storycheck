@@ -39,7 +39,10 @@ runs:
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Install pnpm
       shell: bash
-      run: npm install -g pnpm
+      run: |
+        if ! command -v pnpm > /dev/null 2>&1; then
+          npm install -g pnpm
+        fi      
     - name: Set up environment
       shell: bash
       working-directory: ${{ github.action_path }}

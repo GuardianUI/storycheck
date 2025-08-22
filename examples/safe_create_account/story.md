@@ -32,7 +32,5 @@ This user story walks through creating a new Safe account with 1 signer.
 
 ## Expected Results
 
-## Expected Results
-
 - Verify account created [verifier](verifiers/tx_success.py)
 
