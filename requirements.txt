@@ -1,8 +1,8 @@
+# File: requirements.txt
 # Use PyTorch CUDA index for compatible wheels (fixes operator registration issues)
 --extra-index-url https://download.pytorch.org/whl/cu121
-# File: requirements.txt
 torch==2.5.1
-torchvision==0.20.1  # Compatible with torch 2.7.1 for VLM features
+torchvision==0.20.1  # Compatible with torch 2.5.1 for VLM features
 Pillow>=11
 gradio>=5.39.0
 playwright
@@ -19,3 +19,5 @@ huggingface_hub
 transformers>=4.36.0
 accelerate>=1.9.0
 web3~=7.13.0
+optimum-quanto  # Added for CPU quantization support
+setuptools  # Added for building C++ extensions in optimum-quanto/torch

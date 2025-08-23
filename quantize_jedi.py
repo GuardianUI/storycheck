@@ -1,3 +1,4 @@
+# File: quantize_jedi.py
 import torch
 from transformers import AutoModelForImageTextToText, Qwen2VLProcessor, BitsAndBytesConfig
 from huggingface_hub import HfApi, upload_folder, hf_hub_download
@@ -5,6 +6,9 @@ from optimum.quanto import quantize, qint8, freeze  # Use qint8 for revert
 import os
 import logging
 import hashlib
+from safetensors.torch import save_file
+import json
+from optimum.quanto import quantization_map
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -62,6 +66,8 @@ def quantize_and_save():
                 trust_remote_code=True,
                 device_map="auto"
             )
+            # Save as before for GPU
+            model.save_pretrained(output_dir)
         else:
             logger.info("Starting CPU quantization")
             model = AutoModelForImageTextToText.from_pretrained(
@@ -71,7 +77,14 @@ def quantize_and_save():
             ).to("cpu")
             quantize(model, weights=qint8, activations=qint8)  # Revert to ~3GB setup
             freeze(model)  # Pack weights to reduce size
+            # Low-level save for compatibility on load without wrappers
+            state_dict = model.state_dict()
+            save_file(state_dict, os.path.join(output_dir, 'model.safetensors'))
+            qmap = quantization_map(model)
+            with open(os.path.join(output_dir, 'quantization_map.json'), 'w') as f:
+                json.dump(qmap, f)
         
+        processor.save_pretrained(output_dir) # Save processor to ensure video_preprocessor.json
         model_hash = compute_model_hash(model)
         hash_file = os.path.join(output_dir, 'state_dict_hash.txt')
         
@@ -85,8 +98,6 @@ def quantize_and_save():
         
         if not local_matches:
             logger.info(f"Saving quantized model to {output_dir}")
-            model.save_pretrained(output_dir)
-            processor.save_pretrained(output_dir) # Save processor to ensure video_preprocessor.json
             with open(hash_file, 'w') as f:
                 f.write(model_hash)
         

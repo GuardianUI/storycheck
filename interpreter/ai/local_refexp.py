@@ -1,3 +1,4 @@
+# File: interpreter/ai/local_refexp.py
 import torch
 from transformers import AutoModelForImageTextToText, Qwen2VLProcessor, BitsAndBytesConfig
 import os
@@ -7,6 +8,8 @@ import re
 import json
 import logging
 from ..utils import annotate_image_with_clicks
+from safetensors.torch import load_file
+from optimum.quanto import requantize
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +39,11 @@ class LocalRefExp:
     def init_model():
         force_cpu = os.getenv("VLM_FORCE_CPU", "0") == "1"
         device = "cuda" if torch.cuda.is_available() and not force_cpu else "cpu"
-        # model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "xlangai/Jedi-3B-1080p"
-        # let's try once again with quantized CPU model. It's been fickle in the past.
-        model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "ivelin/storycheck-jedi-3b-1080p-cpu-quantized"        
+        model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "ivelin/storycheck-jedi-3b-1080p-cpu-quantized"
 
-        # Quantization only for GPU
-        quantization_config = None
+        # Load processor
+        processor = Qwen2VLProcessor.from_pretrained(model_name, trust_remote_code=True)
+
         if device == "cuda":
             quantization_config = BitsAndBytesConfig(
                 load_in_4bit=True,
@@ -49,20 +51,28 @@ class LocalRefExp:
                 bnb_4bit_compute_dtype=torch.bfloat16,
                 bnb_4bit_use_double_quant=True
             )
+            model = AutoModelForImageTextToText.from_pretrained(
+                model_name,
+                quantization_config=quantization_config,
+                low_cpu_mem_usage=True,
+                trust_remote_code=True,
+                device_map="auto"
+            )
+        else:
+            # Low-level load for quantized CPU model to avoid compatibility issues
+            with torch.device('meta'):
+                model = AutoModelForImageTextToText.from_pretrained(
+                    model_name,
+                    low_cpu_mem_usage=True,
+                    trust_remote_code=True
+                )
+            state_dict = load_file(os.path.join(model_name, 'model.safetensors'))
+            with open(os.path.join(model_name, 'quantization_map.json'), 'r') as f:
+                qmap = json.load(f)
+            requantize(model, state_dict, qmap, device=torch.device('cpu'))
+            model = model.to('cpu')
 
-        # Load processor and model (use Qwen2VLProcessor for Jedi compatibility)
-        processor = Qwen2VLProcessor.from_pretrained(model_name, trust_remote_code=True)
-        model = AutoModelForImageTextToText.from_pretrained(
-            model_name,
-            quantization_config=quantization_config,
-            low_cpu_mem_usage=True,
-            trust_remote_code=True,
-            device_map="auto" if device == "cuda" else None
-        )
-        if device != "cuda":
-            model = model.to(device)
-
-        logger.info(f"Model loaded on {device} with {'quantization' if quantization_config else 'full precision'}.")
+        logger.info(f"Model loaded on {device} with {'quantization' if device == 'cuda' else 'quanto qint8 precision'}.")
 
         return model, processor
 
