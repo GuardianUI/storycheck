@@ -36,7 +36,9 @@ class LocalRefExp:
     def init_model():
         force_cpu = os.getenv("VLM_FORCE_CPU", "0") == "1"
         device = "cuda" if torch.cuda.is_available() and not force_cpu else "cpu"
-        model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "xlangai/Jedi-3B-1080p"
+        # model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "xlangai/Jedi-3B-1080p"
+        # let's try once again with quantized CPU model. It's been fickle in the past.
+        model_name = "ivelin/storycheck-jedi-3b-1080p-quantized" if device == "cuda" else "ivelin/storycheck-jedi-3b-1080p-cpu-quantized"        
 
         # Quantization only for GPU
         quantization_config = None
