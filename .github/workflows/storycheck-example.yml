@@ -11,10 +11,6 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9  # Latest stable as of Aug 2025; matches common Vite/pnpm setups
       - uses: actions/checkout@v4
       - name: Install pnpm dependencies
         run: pnpm install

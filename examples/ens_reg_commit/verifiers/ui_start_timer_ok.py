@@ -3,8 +3,6 @@
 from PIL import Image
 import json
 from pathlib import Path
-import sys
-sys.path.append(str(Path(__file__).parent.parent.parent)) # Add project root to sys.path for imports
 
 def verify(results_dir):
     manifest_path = Path(results_dir) / "manifest.json"
@@ -15,7 +13,6 @@ def verify(results_dir):
         import interpreter.ai.local_refexp as refexp_module
     except ImportError as e:
         logger.debug("Module contents after failed import: {contents}", contents=dir())
-        logger.debug("Sys.path at import failure: {path}", path=sys.path)
         logger.error("Failed to import local_refexp module: {error}", error=str(e))
         raise
     logger.debug("Module contents: {contents}", contents=dir(refexp_module))
