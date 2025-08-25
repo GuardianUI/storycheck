@@ -39,8 +39,8 @@ runs:
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Set up pnpm
       uses: pnpm/action-setup@v4
-      # with:
-        # version: 9  # Latest stable as of Aug 2025; matches common Vite/pnpm setups
+      with:
+        version: 10
     # - name: Install pnpm
     #   shell: bash
     #   run: |
