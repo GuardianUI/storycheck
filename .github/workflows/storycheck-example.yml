@@ -12,11 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-      - name: Install pnpm dependencies
-        run: pnpm install
-        working-directory: examples/simple-web3-app
       - name: Run StoryCheck
         id: storycheck      
         uses: ./
@@ -25,7 +20,7 @@ jobs:
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}        
         with:
           storypath: 'examples/simple-web3-app'
-          start-command: 'pnpm dev'
+          start-command: 'pnpm install && pnpm dev'
           wait-on: 'http://localhost:5173'
           wait-on-timeout: '60'
           app-working-directory: 'examples/simple-web3-app'
