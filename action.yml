@@ -39,14 +39,14 @@ runs:
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
     - name: Set up pnpm
       uses: pnpm/action-setup@v4
-      with:
-        version: 9  # Latest stable as of Aug 2025; matches common Vite/pnpm setups
-    # - name: Install pnpm
-    #   shell: bash
-    #   run: |
-    #     if ! command -v pnpm > /dev/null 2>&1; then
-    #       npm install -g pnpm
-    #     fi      
+      # with:
+        # version: 9  # Latest stable as of Aug 2025; matches common Vite/pnpm setups
+    - name: Install pnpm
+      shell: bash
+      run: |
+        if ! command -v pnpm > /dev/null 2>&1; then
+          npm install -g pnpm
+        fi      
     - name: Set up environment
       shell: bash
       working-directory: ${{ github.action_path }}
