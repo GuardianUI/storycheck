@@ -9,7 +9,6 @@ from PIL import Image
 import os
 from pathlib import Path
 from slugify import slugify
-import asyncio
 
 class UserStepInterpreter(StepInterpreter):
 
@@ -155,7 +154,9 @@ class WaitStep(UserStepInterpreter):
             return None
         
         logger.debug(f"Waiting for {duration} seconds as per: {text}")
-        await asyncio.sleep(duration)
+        # await asyncio.sleep(duration)
+        page = self.user_agent.page
+        await page.wait_for_timeout(duration * 1000)  # Convert to milliseconds
         logger.debug(f"Wait complete for: {text}")
         
         return {"wait_duration": duration}

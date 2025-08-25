@@ -9,6 +9,20 @@ inputs:
     description: 'Directory for results (default: results)'
     required: false
     default: 'results'
+  start-command:
+    description: 'Command to start the local app server (e.g., yarn start)'
+    required: false
+  wait-on:
+    description: 'URL to wait for the app to be ready (e.g., http://localhost:3000)'
+    required: false
+  wait-on-timeout:
+    description: 'Timeout in seconds for waiting on the app (default: 60)'
+    required: false
+    default: '60'
+  app-working-directory:
+    description: 'Working directory for the start command (relative to your repo, default: .)'
+    required: false
+    default: '.'
 outputs:
   passed:
     description: 'Whether the story check passed (true/false)'
@@ -23,9 +37,16 @@ runs:
     - name: Install uv
       shell: bash
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
-    - name: Install pnpm
-      shell: bash
-      run: npm install -g pnpm
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+    # - name: Install pnpm
+    #   shell: bash
+    #   run: |
+    #     if ! command -v pnpm > /dev/null 2>&1; then
+    #       npm install -g pnpm
+    #     fi      
     - name: Set up environment
       shell: bash
       working-directory: ${{ github.action_path }}
@@ -44,6 +65,29 @@ runs:
       with:
         version: stable
         # Installs anvil and other Foundry tools to PATH
+    - name: Start local app
+      if: inputs.start-command
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.app-working-directory }}
+      run: |
+        nohup ${{ inputs.start-command }} > app.log 2>&1 &
+        echo "APP_PID=$!" >> $GITHUB_ENV
+    - name: Wait for app to be ready
+      if: inputs.wait-on
+      shell: bash
+      run: |
+        timeout=${{ inputs.wait-on-timeout }}
+        for i in $(seq 1 $timeout); do
+          if curl -s --head ${{ inputs.wait-on }} | grep "200 OK" > /dev/null; then
+            echo "App is ready!"
+            break
+          fi
+          sleep 1
+        done
+        if [ $i -eq $timeout ]; then
+          echo "Timeout waiting for app at ${{ inputs.wait-on }}"
+          exit 1
+        fi
     - name: Run StoryCheck
       id: storycheck
       shell: bash
@@ -55,6 +99,13 @@ runs:
         else
           echo "passed=false" >> $GITHUB_OUTPUT
         fi
+    - name: Stop local app
+      if: always() && env.APP_PID
+      shell: bash
+      working-directory: ${{ github.workspace }}/${{ inputs.app-working-directory }}
+      run: |
+        kill $APP_PID || true
+        cat app.log || true  # Log output for debugging
     - name: Upload artifacts
       if: always()
       uses: actions/upload-artifact@v4

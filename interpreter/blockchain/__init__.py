@@ -73,7 +73,9 @@ class LocalChain:
                 No known RPC URL for Chain ID: {self.chain_id}.
                 Please provide one via explicit RPC parameter in the story file.
                 """
-        rpc_args = ["--fork-url", self.rpc_url]
+        # It is unreliable to use the app RPC for anvil fork, so we use a separate RPC URL.
+        fork_RPC = self.RPC_URLs.get(self.chain_id)
+        rpc_args = ["--fork-url", fork_RPC]
 
         logger.debug(
             'Starting anvil EVM Fork with args: {chain} {block} {rpc}',
