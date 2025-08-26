@@ -132,7 +132,7 @@ Verifiers are referenced in the **Expected Results** section of a `story.md` fil
 
 StoryCheck has the following high level workflow:
 
-1. StoryCheck power user uses a frontier models (Grok, Gemini, ChatGPT, Claude) and their favorite IDE to prepare verifiable user stories in sync with project docs in a markdown format that is easy to parse and execute via steps 2-3 below.
+1. StoryCheck users leverage a their favorite IDE and frontier model (Grok, Gemini, ChatGPT, Claude) to prepare verifiable user stories in sync with project docs in a markdown format that is easy to parse and execute via steps 2-3 below.
   - Ideation prompt template available at [ai_story_ideation_template.md](ai_story_ideation_template.md)
 1. Stories are executed and verified in three stages:
   a. Prerequisites: prepare local context with EVM fork, virtual web browser and mock crypto wallet
