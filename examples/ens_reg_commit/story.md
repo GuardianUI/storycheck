@@ -1,6 +1,6 @@
 # Register a new ENS domain
 
-This use story walks through an initial domain name search "storychecktest" and successful registration on a mobile device.
+This use story walks through an initial domain name search "storychecktest" and successful registration commitment.
 
 ## Prerequisites
 

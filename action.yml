@@ -37,16 +37,16 @@ runs:
     - name: Install uv
       shell: bash
       run: curl -LsSf https://astral.sh/uv/install.sh | sh
-    - name: Set up pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 10
-    # - name: Install pnpm
-    #   shell: bash
-    #   run: |
-    #     if ! command -v pnpm > /dev/null 2>&1; then
-    #       npm install -g pnpm
-    #     fi      
+    # - name: Set up pnpm
+    #   uses: pnpm/action-setup@v4
+    #   with:
+    #     version: 9
+    - name: Install pnpm
+      shell: bash
+      run: |
+        if ! command -v pnpm > /dev/null 2>&1; then
+          npm install -g pnpm
+        fi      
     - name: Set up environment
       shell: bash
       working-directory: ${{ github.action_path }}
@@ -93,7 +93,7 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
-        ./storycheck.sh "${{ github.workspace }}/${{ inputs.storypath }}" --output-dir "${{ github.workspace }}/${{ inputs.output-dir }}"
+        ./storycheck.sh "${{ github.workspace }}/${{ inputs.storypath }}" --output-dir="${{ github.workspace }}/${{ inputs.output-dir }}"
         if [ $? -eq 0 ]; then
           echo "passed=true" >> $GITHUB_OUTPUT
         else
@@ -111,4 +111,4 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: storycheck-results
-        path: ${{ inputs.output-dir }}
+        path: "${{ github.workspace }}/${{ inputs.output-dir }}"

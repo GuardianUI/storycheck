@@ -3,9 +3,9 @@ import gradio as gr
 from loguru import logger
 import asyncio
 import os
-from dotenv import load_dotenv
 from markdown import StoryParser, UserStory
 from interpreter import StoryInterpreter
+from interpreter.utils import load_env
 from pathlib import Path
 import json
 import argparse
@@ -82,7 +82,7 @@ async def run_check(args):
 
 
 async def main():
-    load_dotenv()
+    load_env()  # Load hierarchical env files
     args = load_args()
     story_dir = Path(args.storypath)
     assert story_dir.is_dir(), 'Story directory not found.'

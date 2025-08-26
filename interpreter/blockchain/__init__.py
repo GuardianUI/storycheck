@@ -4,10 +4,9 @@ from loguru import logger
 from aiohttp import ClientSession, ClientConnectionError
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from ..utils import load_env
 
-# Load environment variables from .env.local
-load_dotenv('.env.local')
+load_env()  # Load hierarchical env files
 
 class LocalChain:
     alchemy_key = os.environ.get('ALCHEMY_API_KEY', 'YOUR_ALCHEMY_API_KEY')

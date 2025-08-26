@@ -3,6 +3,29 @@ import time
 from pathlib import Path
 from PIL import Image, ImageDraw
 from loguru import logger
+import os
+from environs import Env
+
+def load_env():
+    """Load environment variables from .env.local or .env in CWD or project root."""
+    env = Env()
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # Define search paths: project root first, then CWD (for priority: CWD overrides root)
+    search_paths = [
+        project_root,
+        os.getcwd()
+    ]
+
+    env_files = ['.env', '.env.local']  # Load .env first, then .env.local (overrides)
+
+    for dir_path in search_paths:
+        for env_file in env_files:
+            full_path = os.path.join(dir_path, env_file)
+            if os.path.exists(full_path):
+                env.read_env(full_path, recurse=False, override=True)
+
+    return env
 
 def get_timestamped_path(dir_path: Path, file_name: str = "screenshot") -> Path:
     timestamp = time.time()

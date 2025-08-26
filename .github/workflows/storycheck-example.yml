@@ -24,6 +24,7 @@ jobs:
           wait-on: 'http://localhost:5173'
           wait-on-timeout: '60'
           app-working-directory: 'examples/simple-web3-app'
+          output-dir: 'results'
       - name: Check if passed
         if: ${{ steps.storycheck.outputs.passed != 'true' }}
         run: echo "StoryCheck failed!" && exit 1
