@@ -36,4 +36,4 @@ cd "$DIR/interpreter/browser/mock_wallet/"
 pnpm build
 cd -
 
-uv run python3 "$DIR/app.py" "$1" --output-dir="$DIR/$OUTPUT_DIR"
+uv run python3 "$DIR/app.py" "$1" --output-dir="$OUTPUT_DIR"
