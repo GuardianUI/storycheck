@@ -93,7 +93,7 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
-        ./storycheck.sh "${{ github.workspace }}/${{ inputs.storypath }}" --output-dir "${{ github.workspace }}/${{ inputs.output-dir }}"
+        ./storycheck.sh "${{ github.workspace }}/${{ inputs.storypath }}" --output-dir="${{ github.workspace }}/${{ inputs.output-dir }}"
         if [ $? -eq 0 ]; then
           echo "passed=true" >> $GITHUB_OUTPUT
         else
