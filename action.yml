@@ -111,4 +111,4 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: storycheck-results
-        path: ${{ inputs.output-dir }}
+        path: "${{ github.workspace }}/${{ inputs.output-dir }}"
