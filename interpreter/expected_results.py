@@ -42,6 +42,7 @@ class VerifierCheck(CheckStep):
             verifier_path = Path(link)            
         logger.debug(f"verifier_path: {verifier_path}")
         results_dir = self.user_agent.results_dir  # From UserAgent        
+        logger.debug(f"results_dir: {results_dir}")
         if verifier_path.exists():
             with open(verifier_path, 'r') as f:
                 code = f.read()
